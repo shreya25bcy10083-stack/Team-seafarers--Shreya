@@ -1,0 +1,782 @@
+# UX_FLOW.md
+
+# CareCompanion User Experience Flow
+
+Version: 1.0
+
+---
+
+# Purpose
+
+This document defines the complete user experience of CareCompanion.
+
+It focuses on
+
+- User Journey
+- Screen Behaviour
+- User Emotions
+- AI Avatar Behaviour
+- User Actions
+- Edge Cases
+
+This document does NOT describe UI implementation.
+
+It describes the experience.
+
+---
+
+# UX Philosophy
+
+Users should never wonder
+
+"What do I do now?"
+
+Every screen should naturally guide the user toward the next action.
+
+The AI Companion should always feel present, supportive and calming.
+
+---
+
+# Patient Journey
+
+Launch App
+
+↓
+
+Authentication
+
+↓
+
+Home
+
+↓
+
+Medication Reminder
+
+↓
+
+Wellness Check
+
+↓
+
+AI Companion
+
+↓
+
+Medical Report Upload
+
+↓
+
+Health Summary
+
+↓
+
+Profile
+
+↓
+
+Logout
+
+SOS is accessible from every screen.
+
+---
+
+# Caregiver Journey
+
+Authentication
+
+↓
+
+Dashboard
+
+↓
+
+Patient Overview
+
+↓
+
+Medication Status
+
+↓
+
+Health Reports
+
+↓
+
+Alerts
+
+↓
+
+Patient Profile
+
+---
+
+# Screen 1
+
+Splash Screen
+
+---
+
+Purpose
+
+Introduce the application.
+
+Duration
+
+2–3 seconds.
+
+Emotion
+
+Comfort
+
+Trust
+
+---
+
+Avatar
+
+Wave animation.
+
+Smile.
+
+---
+
+Message
+
+"Welcome to CareCompanion"
+
+---
+
+Transition
+
+Automatically navigate to Login.
+
+---
+
+# Screen 2
+
+Authentication
+
+---
+
+Purpose
+
+Allow secure login.
+
+---
+
+Emotion
+
+Simple
+
+Stress-free
+
+---
+
+Primary Actions
+
+Login
+
+Register
+
+---
+
+Avatar
+
+Friendly greeting.
+
+---
+
+Message
+
+"Welcome back."
+
+---
+
+Error State
+
+Wrong credentials
+
+↓
+
+Friendly message
+
+"That doesn't seem right.
+Please try again."
+
+---
+
+# Screen 3
+
+Role Selection
+
+---
+
+Purpose
+
+Select
+
+Patient
+
+or
+
+Caregiver
+
+---
+
+Emotion
+
+Confidence
+
+---
+
+Primary Action
+
+Continue
+
+---
+
+Avatar
+
+Explains the difference.
+
+---
+
+# Screen 4
+
+Patient Home
+
+---
+
+Purpose
+
+Show today's priorities.
+
+---
+
+Emotion
+
+Calm
+
+Organized
+
+Supported
+
+---
+
+Avatar
+
+Greets user by name.
+
+Summarizes today's schedule.
+
+---
+
+Displayed Information
+
+Today's medications
+
+Wellness reminder
+
+Health summary
+
+Recent activity
+
+---
+
+Primary CTA
+
+Take Medication
+
+---
+
+Secondary CTA
+
+Talk to CareCompanion
+
+---
+
+Empty State
+
+"No medications scheduled today."
+
+---
+
+Loading State
+
+Skeleton Cards
+
+Avatar Wave
+
+---
+
+# Screen 5
+
+Medication Reminder
+
+---
+
+Purpose
+
+Ensure medication adherence.
+
+---
+
+Emotion
+
+Gentle encouragement.
+
+Never guilt.
+
+---
+
+Avatar
+
+Reminder animation.
+
+---
+
+Message
+
+"It's time for your blood pressure medicine."
+
+---
+
+Actions
+
+Taken
+
+Snooze
+
+Skip
+
+---
+
+If Skipped
+
+Avatar
+
+"No worries.
+
+Would you like another reminder in 15 minutes?"
+
+---
+
+# Screen 6
+
+Wellness Check
+
+---
+
+Purpose
+
+Collect daily health information.
+
+---
+
+Emotion
+
+Conversation
+
+Not interrogation.
+
+---
+
+Avatar
+
+Asks one question at a time.
+
+---
+
+Questions
+
+Mood
+
+Sleep
+
+Pain
+
+Energy
+
+Notes
+
+---
+
+Progress
+
+Display progress indicator.
+
+---
+
+Completion
+
+Celebrate completion.
+
+"Thank you for checking in."
+
+---
+
+# Screen 7
+
+AI Companion
+
+---
+
+Purpose
+
+Provide health guidance.
+
+---
+
+Emotion
+
+Supportive
+
+Friendly
+
+Patient
+
+---
+
+Avatar
+
+Always visible.
+
+Speaking animation.
+
+Listening animation.
+
+---
+
+Input
+
+Voice
+
+Text
+
+Suggested Prompts
+
+---
+
+Examples
+
+"Explain my medicine."
+
+"What should I eat today?"
+
+"Help me understand this report."
+
+---
+
+# Screen 8
+
+Medical Report Upload
+
+---
+
+Purpose
+
+Allow users to understand reports.
+
+---
+
+Emotion
+
+Confidence
+
+---
+
+Avatar
+
+Explains upload process.
+
+---
+
+Flow
+
+Upload
+
+↓
+
+Processing
+
+↓
+
+Summary
+
+↓
+
+Recommendations
+
+---
+
+Loading
+
+Thinking animation.
+
+---
+
+Completion
+
+Simple explanation.
+
+---
+
+# Screen 9
+
+Caregiver Dashboard
+
+---
+
+Purpose
+
+Monitor patient.
+
+---
+
+Emotion
+
+Awareness
+
+Control
+
+---
+
+Information
+
+Medication Status
+
+Today's Wellness
+
+Alerts
+
+Reports
+
+Health Trends
+
+---
+
+Primary CTA
+
+View Patient
+
+---
+
+# Screen 10
+
+SOS
+
+---
+
+Purpose
+
+Emergency assistance.
+
+---
+
+Emotion
+
+Urgency
+
+Safety
+
+---
+
+Avatar
+
+Concerned.
+
+Supportive.
+
+---
+
+Message
+
+"Help is on the way."
+
+---
+
+Actions
+
+Cancel (5-second countdown)
+
+Call Caregiver
+
+Share Location
+
+---
+
+Confirmation
+
+"Your caregiver has been notified."
+
+---
+
+# Profile
+
+Purpose
+
+Manage preferences.
+
+---
+
+Settings
+
+Theme
+
+Notifications
+
+Reminder Volume
+
+Accessibility
+
+Language
+
+Voice
+
+---
+
+# Notification Experience
+
+Medication
+
+Gentle sound
+
+↓
+
+Voice reminder
+
+↓
+
+Loud reminder
+
+↓
+
+Caregiver notification
+
+---
+
+Emergency
+
+Immediate vibration
+
+↓
+
+Alarm
+
+↓
+
+SOS Screen
+
+---
+
+# Loading Experience
+
+Never show blank screens.
+
+Always display
+
+Skeleton
+
+Spinner
+
+Avatar Thinking
+
+Loading Message
+
+---
+
+# Error Experience
+
+Always explain.
+
+Never blame.
+
+Example
+
+Instead of
+
+"500 Internal Error"
+
+Use
+
+"We couldn't complete that action.
+
+Please try again."
+
+---
+
+# Empty Experience
+
+Every empty page should contain
+
+Illustration
+
+Message
+
+Action Button
+
+---
+
+# AI Personality
+
+The AI should
+
+- Encourage
+- Guide
+- Reassure
+- Explain
+
+The AI should never
+
+- Judge
+- Scare
+- Overwhelm
+
+---
+
+# Voice Design
+
+The AI speaks
+
+Slowly
+
+Clearly
+
+Warmly
+
+Never robotic.
+
+---
+
+# Accessibility Journey
+
+Every important action must be achievable using
+
+Touch
+
+Voice
+
+Visual feedback
+
+Audio feedback
+
+---
+
+# UX Success Criteria
+
+The experience is successful when
+
+Users can complete every major task without external assistance.
+
+Navigation feels natural.
+
+Users always understand the next action.
+
+Accessibility features reduce friction.
+
+The AI Companion feels like part of the experience rather than a chatbot.
+
+---
+
+End of Document
