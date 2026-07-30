@@ -20,12 +20,12 @@ if not exist "%BACKEND_DIR%\venv\Scripts\python.exe" (
 echo [2/3] Starting CareCompanion FastAPI Backend Server (Port 8000)...
 start "CareCompanion Backend Server" cmd /k "cd /d "%BACKEND_DIR%" && ".\venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
 
-timeout /t 3 >nul
+ping 127.0.0.1 -n 3 >nul
 
 echo [3/3] Starting CareCompanion Frontend Web Interface (Port 8081)...
 start "CareCompanion Frontend Web App" cmd /k "cd /d "%FRONTEND_DIR%" && cmd /c npx expo start --web"
 
-timeout /t 4 >nul
+ping 127.0.0.1 -n 4 >nul
 
 echo.
 echo ===================================================
@@ -35,5 +35,3 @@ echo Frontend Web Interface: http://localhost:8081
 echo ===================================================
 echo.
 start http://localhost:8081
-
-pause
