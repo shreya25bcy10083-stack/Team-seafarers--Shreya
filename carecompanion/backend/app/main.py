@@ -75,6 +75,9 @@ app.add_exception_handler(Exception, generic_exception_handler)
 # Register Routers under /api/v1
 API_PREFIX = settings.API_PREFIX
 
+from app.routers import health_router
+
+app.include_router(health_router.router, prefix=API_PREFIX)
 app.include_router(auth_router.router, prefix=API_PREFIX)
 app.include_router(patient_router.router, prefix=API_PREFIX)
 app.include_router(caregiver_router.router, prefix=API_PREFIX)

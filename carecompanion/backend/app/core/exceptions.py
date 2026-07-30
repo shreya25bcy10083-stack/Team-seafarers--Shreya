@@ -19,6 +19,10 @@ class CareCompanionException(Exception):
         super().__init__(self.message)
 
 
+# Alias for compatibility with newly pulled modules
+AppException = CareCompanionException
+
+
 class NotFoundException(CareCompanionException):
     """Resource not found."""
 

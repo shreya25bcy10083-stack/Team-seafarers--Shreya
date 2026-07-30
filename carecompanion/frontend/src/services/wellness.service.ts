@@ -1,9 +1,5 @@
-<<<<<<< HEAD
 import { ApiClient, mockDelay } from './api';
 import { API_CONFIG } from '../constants/api';
-=======
-import { mockDelay } from './api';
->>>>>>> c1497f01e195e6bb99fda798bdf1d6e23bf18166
 import { ApiResponse } from '../types/API';
 import { WellnessCheckIn } from '../types/Wellness';
 
@@ -22,7 +18,6 @@ const MOCK_WELLNESS_LOGS: WellnessCheckIn[] = [
 
 export const WellnessService = {
   async submitCheckIn(data: Omit<WellnessCheckIn, 'id' | 'patientId' | 'date'>): Promise<ApiResponse<WellnessCheckIn>> {
-<<<<<<< HEAD
     const response = await ApiClient.request<any>(API_CONFIG.ENDPOINTS.WELLNESS.CHECKIN, {
       method: 'POST',
       body: {
@@ -55,9 +50,6 @@ export const WellnessService = {
 
     // Fallback for mock mode
     await mockDelay(400);
-=======
-    await mockDelay(500);
->>>>>>> c1497f01e195e6bb99fda798bdf1d6e23bf18166
     const newEntry: WellnessCheckIn = {
       id: `well_${Date.now()}`,
       patientId: 'usr_101',
@@ -67,17 +59,12 @@ export const WellnessService = {
     MOCK_WELLNESS_LOGS.unshift(newEntry);
     return {
       success: true,
-<<<<<<< HEAD
-      message: 'Daily wellness check-in recorded (Mock Mode)',
-=======
       message: 'Daily wellness check-in recorded',
->>>>>>> c1497f01e195e6bb99fda798bdf1d6e23bf18166
       data: newEntry,
     };
   },
 
   async getLogs(patientId?: string): Promise<ApiResponse<WellnessCheckIn[]>> {
-<<<<<<< HEAD
     const response = await ApiClient.request<any[]>(API_CONFIG.ENDPOINTS.WELLNESS.HISTORY);
 
     if (response.success && Array.isArray(response.data)) {
@@ -93,7 +80,7 @@ export const WellnessService = {
       }));
       return {
         success: true,
-        message: 'Wellness logs retrieved from backend',
+        message: 'Wellness logs retrieved',
         data: logs,
       };
     }
@@ -102,13 +89,7 @@ export const WellnessService = {
     await mockDelay(300);
     return {
       success: true,
-      message: 'Wellness logs retrieved (Mock Mode)',
-=======
-    await mockDelay(300);
-    return {
-      success: true,
       message: 'Wellness logs retrieved',
->>>>>>> c1497f01e195e6bb99fda798bdf1d6e23bf18166
       data: MOCK_WELLNESS_LOGS,
     };
   },

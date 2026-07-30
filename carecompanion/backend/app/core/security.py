@@ -58,3 +58,7 @@ def verify_access_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+
+
+# Alias for compatibility
+verify_token = verify_access_token

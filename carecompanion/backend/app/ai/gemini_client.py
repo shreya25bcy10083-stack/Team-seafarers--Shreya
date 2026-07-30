@@ -5,6 +5,7 @@ Handles communication with Google Gemini API.
 Only this module communicates with Gemini directly.
 """
 
+# pyrefly: ignore [missing-import]
 import google.generativeai as genai
 from app.config import get_settings
 from app.core.exceptions import AIServiceException

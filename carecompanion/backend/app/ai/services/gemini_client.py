@@ -13,7 +13,7 @@ from app.core.exceptions import AppException
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
 # Default model
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-2.0-flash"
 
 
 def generate_response(system_prompt: str, user_prompt: str, max_retries: int = 2) -> str:
@@ -37,7 +37,7 @@ def generate_response(system_prompt: str, user_prompt: str, max_retries: int = 2
         try:
             response = model.generate_content(user_prompt)
             if response and response.text:
-                return response.text
+                return response.text.strip()
             raise AppException("Empty response from AI.")
         except AppException:
             raise
@@ -50,3 +50,7 @@ def generate_response(system_prompt: str, user_prompt: str, max_retries: int = 2
             )
 
     raise AppException("AI service unavailable.")
+
+
+# Alias for backward compatibility
+get_gemini_response = generate_response
