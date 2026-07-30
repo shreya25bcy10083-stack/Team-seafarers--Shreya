@@ -11,6 +11,7 @@ from app.config import get_settings
 
 settings = get_settings()
 
+<<<<<<< HEAD
 db_url = settings.DATABASE_URL
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
@@ -24,6 +25,14 @@ else:
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 
 engine = create_engine(db_url, **engine_kwargs)
+=======
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+)
+>>>>>>> c1497f01e195e6bb99fda798bdf1d6e23bf18166
 
 SessionLocal = sessionmaker(
     autocommit=False,

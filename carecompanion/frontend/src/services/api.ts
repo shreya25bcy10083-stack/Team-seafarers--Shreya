@@ -48,8 +48,8 @@ export class ApiClient {
         body: options.isFormData
           ? options.body
           : options.body
-          ? JSON.stringify(options.body)
-          : undefined,
+            ? JSON.stringify(options.body)
+            : undefined,
         signal: controller.signal,
       });
 

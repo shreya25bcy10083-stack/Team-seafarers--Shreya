@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 import { ApiClient, mockDelay } from './api';
 import { API_CONFIG } from '../constants/api';
+=======
+import { mockDelay } from './api';
+>>>>>>> c1497f01e195e6bb99fda798bdf1d6e23bf18166
 import { ApiResponse } from '../types/API';
 
 export interface SOSAlertResponse {
@@ -11,6 +15,7 @@ export interface SOSAlertResponse {
 }
 
 export const SOSService = {
+<<<<<<< HEAD
   async triggerSOS(patientId?: string, latitude?: number, longitude?: number): Promise<ApiResponse<SOSAlertResponse>> {
     const response = await ApiClient.request<any>(API_CONFIG.ENDPOINTS.SOS.TRIGGER, {
       method: 'POST',
@@ -37,6 +42,13 @@ export const SOSService = {
     return {
       success: true,
       message: 'EMERGENCY ALERT SENT: Caregiver and contacts notified immediately (Mock Mode).',
+=======
+  async triggerSOS(patientId: string): Promise<ApiResponse<SOSAlertResponse>> {
+    await mockDelay(400);
+    return {
+      success: true,
+      message: 'EMERGENCY ALERT SENT: Caregiver and contacts notified immediately.',
+>>>>>>> c1497f01e195e6bb99fda798bdf1d6e23bf18166
       data: {
         alertId: `sos_${Date.now()}`,
         triggeredAt: new Date().toISOString(),
