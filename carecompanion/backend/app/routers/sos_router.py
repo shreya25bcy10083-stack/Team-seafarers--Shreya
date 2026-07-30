@@ -16,6 +16,7 @@ router = APIRouter(prefix="/sos", tags=["SOS Emergency"])
 
 
 @router.post("")
+@router.post("/trigger")
 def trigger_sos(
     request: SOSCreate,
     current_user: dict = Depends(require_patient),

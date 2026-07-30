@@ -24,7 +24,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ selectedRole, on
   const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (emailStr: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(emailStr.trim());
   };
 

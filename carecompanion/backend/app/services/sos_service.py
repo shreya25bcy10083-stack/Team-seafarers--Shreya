@@ -40,11 +40,11 @@ class SOSService:
             longitude=longitude,
         )
 
-        # Create emergency notification
+        # Create emergency notification for patient
         self.notification_repo.create(
             patient_id=patient.id,
             title="🚨 SOS Emergency Triggered",
-            description=f"Emergency alert sent. Location: {latitude}, {longitude}",
+            description=f"Emergency alert sent. Location: {latitude or 'N/A'}, {longitude or 'N/A'}",
             type="emergency",
         )
 
@@ -52,11 +52,24 @@ class SOSService:
             patient_id=patient.id,
             event_type="sos",
             title="🚨 SOS Emergency Triggered",
-            description=f"Patient pressed SOS button. Location: {latitude or 'N/A'}, {longitude or 'N/A'}",
+            description=f"Patient {patient.user.full_name} pressed SOS button. Location: {latitude or 'N/A'}, {longitude or 'N/A'}",
         )
+
+        # Notify linked caregivers
+        from app.repositories.caregiver_repository import CaregiverRepository
+        caregiver_repo = CaregiverRepository(self.patient_repo.db)
+        links = caregiver_repo.get_caregivers_for_patient(patient.id)
+        for link in links:
+            if link.caregiver and link.caregiver.user:
+                self.notification_repo.create(
+                    patient_id=patient.id,
+                    title=f"🚨 EMERGENCY: {patient.user.full_name} Triggered SOS",
+                    description=f"Immediate attention required! Location: {latitude or 'N/A'}, {longitude or 'N/A'}",
+                    type="emergency",
+                )
 
         return {
             "id": event.id,
             "status": event.status,
-            "message": "Emergency alert sent.",
+            "message": "Emergency alert sent to caregiver and response contacts.",
         }

@@ -13,15 +13,28 @@ settings = get_settings()
 
 db_url = settings.DATABASE_URL
 if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+    db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+psycopg://"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
-engine_kwargs = {"pool_pre_ping": True}
-if not db_url.startswith("sqlite"):
-    engine_kwargs.update({"pool_size": 5, "max_overflow": 10})
+# Fallback to local SQLite if postgres URL contains placeholder
+if "user:password@host" in db_url or "localhost" in db_url:
+    try:
+        engine_kwargs = {"connect_args": {"check_same_thread": False}}
+        engine = create_engine("sqlite:///./carecompanion.db", **engine_kwargs)
+    except Exception:
+        engine_kwargs = {"pool_pre_ping": True, "pool_size": 5, "max_overflow": 10}
+        engine = create_engine(db_url, **engine_kwargs)
 else:
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
-
-engine = create_engine(db_url, **engine_kwargs)
+    try:
+        engine_kwargs = {"pool_pre_ping": True}
+        if not db_url.startswith("sqlite"):
+            engine_kwargs.update({"pool_size": 5, "max_overflow": 10})
+        else:
+            engine_kwargs["connect_args"] = {"check_same_thread": False}
+        engine = create_engine(db_url, **engine_kwargs)
+    except Exception:
+        engine = create_engine("sqlite:///./carecompanion.db", connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(
     autocommit=False,

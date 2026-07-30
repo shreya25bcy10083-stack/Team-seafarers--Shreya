@@ -12,6 +12,9 @@ from app.repositories.wellness_repository import WellnessRepository
 from app.core.exceptions import NotFoundException, BadRequestException
 
 
+from app.repositories.report_repository import ReportRepository
+
+
 class CaregiverService:
     """Handles caregiver joining, dashboard, and patient monitoring."""
 
@@ -20,6 +23,7 @@ class CaregiverService:
         self.patient_repo = PatientRepository(db)
         self.medication_repo = MedicationRepository(db)
         self.wellness_repo = WellnessRepository(db)
+        self.report_repo = ReportRepository(db)
 
     def join_patient(self, user_id: int, invite_code: str) -> dict:
         """
@@ -48,10 +52,8 @@ class CaregiverService:
 
     def get_dashboard(self, user_id: int) -> dict:
         """
-        Get caregiver dashboard data.
-
-        Returns:
-            Dict with patient summary.
+        Get caregiver dashboard data including linked patients, patient info,
+        medication schedule, wellness status, activity feed, medical reports, and SOS alerts.
         """
         caregiver = self.caregiver_repo.get_by_user_id(user_id)
         if not caregiver:
@@ -60,32 +62,128 @@ class CaregiverService:
         links = self.caregiver_repo.get_patients_for_caregiver(caregiver.id)
         if not links:
             return {
-                "patient_name": "No patient linked",
+                "linked_patients": [],
+                "patient_info": None,
+                "medication_schedule": [],
+                "wellness_status": None,
+                "recent_activity": [],
+                "medical_reports": [],
+                "sos_alerts": [],
                 "medication_adherence": 0,
-                "today_status": "Unknown",
+                "today_status": "No patient linked",
             }
 
-        # Get first linked patient's data
-        link = links[0]
-        patient = self.patient_repo.get_by_id(link.patient_id)
-        if not patient:
-            raise NotFoundException(message="Patient not found.")
+        # Retrieve all linked patient summaries
+        linked_patients = []
+        for link in links:
+            p = self.patient_repo.get_by_id(link.patient_id)
+            if p:
+                linked_patients.append({
+                    "id": p.id,
+                    "name": p.user.full_name,
+                    "age": p.age,
+                    "blood_group": p.blood_group,
+                })
 
-        # Calculate medication adherence
-        medications = self.medication_repo.get_by_patient_id(patient.id)
-        logs = self.medication_repo.get_logs_by_patient(patient.id)
+        # Focus on primary linked patient
+        primary_patient = self.patient_repo.get_by_id(links[0].patient_id)
+        if not primary_patient:
+            raise NotFoundException(message="Linked patient not found.")
+
+        pid = primary_patient.id
+
+        # 1. Patient Info
+        patient_info = {
+            "id": primary_patient.id,
+            "name": primary_patient.user.full_name,
+            "age": primary_patient.age,
+            "blood_group": primary_patient.blood_group,
+        }
+
+        # 2. Medication Schedule & Adherence
+        medications = self.medication_repo.get_by_patient_id(pid)
+        logs = self.medication_repo.get_logs_by_patient(pid)
         total_meds = len(medications) if medications else 1
         taken_logs = len([l for l in logs if l.status == "taken"])
         adherence = round((taken_logs / max(total_meds, 1)) * 100, 1)
 
-        # Get latest wellness status
-        latest_wellness = self.wellness_repo.get_latest(patient.id)
+        medication_schedule = [
+            {
+                "id": m.id,
+                "medicine_name": m.medicine_name,
+                "dosage": m.dosage,
+                "frequency": m.frequency,
+                "reminder_time": m.reminder_time.strftime("%H:%M") if m.reminder_time else None,
+                "instructions": m.instructions,
+            }
+            for m in medications
+        ]
+
+        # 3. Wellness Status
+        latest_wellness = self.wellness_repo.get_latest(pid)
+        wellness_status = {
+            "mood": latest_wellness.mood if latest_wellness else "No check-in",
+            "sleep_hours": latest_wellness.sleep_hours if latest_wellness else None,
+            "energy_level": latest_wellness.energy_level if latest_wellness else None,
+            "pain_level": latest_wellness.pain_level if latest_wellness else None,
+            "notes": latest_wellness.notes if latest_wellness else None,
+            "created_at": latest_wellness.created_at.isoformat() if latest_wellness and latest_wellness.created_at else None,
+        } if latest_wellness else None
+
         today_status = latest_wellness.mood if latest_wellness else "No check-in"
 
+        # 4. Recent Activity
+        from app.repositories.activity_repository import ActivityRepository
+        act_logs = ActivityRepository(self.patient_repo.db).get_patient_activity(pid, limit=15)
+        recent_activity = [
+            {
+                "id": a.id,
+                "event_type": a.event_type,
+                "title": a.title,
+                "description": a.description,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in act_logs
+        ]
+
+        # 5. Medical Reports
+        reports = self.report_repo.get_by_patient_id(pid)
+        medical_reports = [
+            {
+                "id": r.id,
+                "report_name": r.report_name,
+                "report_url": r.report_url,
+                "ai_summary": r.ai_summary,
+                "uploaded_at": r.uploaded_at.isoformat() if r.uploaded_at else None,
+            }
+            for r in reports
+        ]
+
+        # 6. SOS Alerts
+        from app.repositories.sos_repository import SOSRepository
+        sos_events = SOSRepository(self.patient_repo.db).get_by_patient_id(pid)
+        sos_alerts = [
+            {
+                "id": s.id,
+                "status": s.status,
+                "latitude": s.latitude,
+                "longitude": s.longitude,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in sos_events
+        ]
+
         return {
-            "patient_name": patient.user.full_name,
+            "linked_patients": linked_patients,
+            "patient_info": patient_info,
+            "patient_name": primary_patient.user.full_name,
             "medication_adherence": adherence,
             "today_status": today_status,
+            "medication_schedule": medication_schedule,
+            "wellness_status": wellness_status,
+            "recent_activity": recent_activity,
+            "medical_reports": medical_reports,
+            "sos_alerts": sos_alerts,
         }
 
     def get_patient_details(self, user_id: int, patient_id: int) -> dict:

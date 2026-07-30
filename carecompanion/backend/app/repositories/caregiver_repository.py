@@ -55,3 +55,11 @@ class CaregiverRepository:
             .filter(PatientCaregiver.caregiver_id == caregiver_id)
             .all()
         )
+
+    def get_caregivers_for_patient(self, patient_id: int) -> list[PatientCaregiver]:
+        """Get all caregiver links for a patient."""
+        return (
+            self.db.query(PatientCaregiver)
+            .filter(PatientCaregiver.patient_id == patient_id)
+            .all()
+        )

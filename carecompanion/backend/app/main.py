@@ -72,6 +72,16 @@ app.add_middleware(LoggingMiddleware)
 app.add_exception_handler(CareCompanionException, carecompanion_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
+import os
+from fastapi.staticfiles import StaticFiles
+uploads_dir = os.path.join(os.getcwd(), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+frontend_dist = os.path.abspath(os.path.join(os.getcwd(), "..", "frontend", "dist"))
+if os.path.exists(frontend_dist):
+    app.mount("/app", StaticFiles(directory=frontend_dist, html=True), name="frontend_web")
+
 # Register Routers under /api/v1
 API_PREFIX = settings.API_PREFIX
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { COLORS } from '../../constants/colors';
 
 export type AvatarState = 'IDLE' | 'GREETING' | 'SMILING' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'HAPPY' | 'CONCERNED' | 'REMINDER' | 'EMERGENCY';
@@ -11,6 +11,77 @@ interface AvatarProps {
 }
 
 export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', showLabel = true }) => {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const waveAnim = useRef(new Animated.Value(0.8)).current;
+
+  useEffect(() => {
+    // Floating animation
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -6,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    floatLoop.start();
+
+    // Pulse / Wave animation for SPEAKING, LISTENING, THINKING, EMERGENCY
+    let pulseLoop: Animated.CompositeAnimation | null = null;
+    if (state === 'SPEAKING' || state === 'LISTENING' || state === 'THINKING' || state === 'EMERGENCY' || state === 'REMINDER') {
+      pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: state === 'EMERGENCY' ? 300 : 700,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1.0,
+            duration: state === 'EMERGENCY' ? 300 : 700,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoop.start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+
+    // Lip sync / wave animation for speaking
+    let waveLoop: Animated.CompositeAnimation | null = null;
+    if (state === 'SPEAKING') {
+      waveLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(waveAnim, {
+            toValue: 1.2,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(waveAnim, {
+            toValue: 0.8,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      waveLoop.start();
+    }
+
+    return () => {
+      floatLoop.stop();
+      if (pulseLoop) pulseLoop.stop();
+      if (waveLoop) waveLoop.stop();
+    };
+  }, [state]);
+
   const getDimension = () => {
     switch (size) {
       case 'sm':
@@ -91,7 +162,7 @@ export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', sho
 
   return (
     <View style={styles.container} accessibilityLabel={`AI Companion Avatar state ${state.toLowerCase()}`} accessibilityRole="image">
-      <View
+      <Animated.View
         style={[
           styles.avatarCircle,
           {
@@ -99,11 +170,30 @@ export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', sho
             height: dim,
             borderRadius: dim / 2,
             borderColor: getBorderColor(),
+            transform: [
+              { translateY: floatAnim },
+              { scale: pulseAnim },
+            ],
           },
         ]}
       >
         <Text style={{ fontSize: dim * 0.48 }}>{getExpressionEmoji()}</Text>
-      </View>
+
+        {state === 'SPEAKING' && (
+          <Animated.View
+            style={[
+              styles.soundWaveRing,
+              {
+                width: dim + 12,
+                height: dim + 12,
+                borderRadius: (dim + 12) / 2,
+                borderColor: COLORS.secondary.main,
+                transform: [{ scale: waveAnim }],
+              },
+            ]}
+          />
+        )}
+      </Animated.View>
       {showLabel && <Text style={styles.stateLabel}>{getLabelText()}</Text>}
     </View>
   );
@@ -124,9 +214,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
+    position: 'relative',
+  },
+  soundWaveRing: {
+    position: 'absolute',
+    borderWidth: 2,
+    opacity: 0.6,
   },
   stateLabel: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.neutral.textSecondary,

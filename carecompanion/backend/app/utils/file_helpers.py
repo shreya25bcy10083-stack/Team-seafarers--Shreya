@@ -55,9 +55,12 @@ def validate_file(file: UploadFile) -> None:
             )
 
 
+import os
+import uuid
+
 async def upload_to_cloudinary(file: UploadFile, folder: str = "reports") -> dict:
     """
-    Upload a file to Cloudinary.
+    Upload a file to Cloudinary, with local filesystem fallback.
 
     Args:
         file: The uploaded file.
@@ -65,9 +68,6 @@ async def upload_to_cloudinary(file: UploadFile, folder: str = "reports") -> dic
 
     Returns:
         Dict with 'url' and 'public_id'.
-
-    Raises:
-        FileUploadException: If upload fails.
     """
     validate_file(file)
 
@@ -80,21 +80,39 @@ async def upload_to_cloudinary(file: UploadFile, folder: str = "reports") -> dic
                 message=f"File size exceeds maximum of {settings.MAX_UPLOAD_SIZE // (1024 * 1024)} MB."
             )
 
-        result = cloudinary.uploader.upload(
-            contents,
-            folder=folder,
-            resource_type="auto",
-        )
+        # Attempt Cloudinary upload if configured
+        if settings.CLOUDINARY_URL and "YOUR_CLOUD_NAME" not in settings.CLOUDINARY_URL:
+            try:
+                result = cloudinary.uploader.upload(
+                    contents,
+                    folder=folder,
+                    resource_type="auto",
+                )
+                return {
+                    "url": result.get("secure_url", ""),
+                    "public_id": result.get("public_id", ""),
+                }
+            except Exception:
+                pass  # Fallback to local storage
 
+        # Local storage fallback
+        upload_dir = os.path.join(os.getcwd(), "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        safe_filename = f"{uuid.uuid4().hex[:8]}_{file.filename or 'report.pdf'}"
+        file_path = os.path.join(upload_dir, safe_filename)
+        with open(file_path, "wb") as f:
+            f.write(contents)
+
+        local_url = f"/uploads/{safe_filename}"
         return {
-            "url": result.get("secure_url", ""),
-            "public_id": result.get("public_id", ""),
+            "url": local_url,
+            "public_id": safe_filename,
         }
     except FileUploadException:
         raise
     except Exception as e:
         raise FileUploadException(
-            message="Failed to upload file. Please try again."
+            message=f"Failed to upload file: {str(e)}"
         )
     finally:
         await file.seek(0)

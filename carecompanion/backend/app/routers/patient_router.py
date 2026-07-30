@@ -45,6 +45,7 @@ def update_profile(
 
 
 @router.post("/invite")
+@router.post("/invite-code")
 def generate_invite_code(
     current_user: dict = Depends(require_patient),
     db: Session = Depends(get_db),
