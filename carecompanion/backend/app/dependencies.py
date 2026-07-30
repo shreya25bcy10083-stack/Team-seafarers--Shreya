@@ -13,7 +13,7 @@ from app.core.exceptions import UnauthorizedException, ForbiddenException
 from app.repositories.user_repository import UserRepository
 
 
-def get_current_user(authorization: str = Header(..., description="Bearer JWT token"), db: Session = Depends(get_db)) -> dict:
+def get_current_user(authorization: str | None = Header(None, description="Bearer JWT token"), db: Session = Depends(get_db)) -> dict:
     """
     Extract and validate the current user from JWT token.
 
@@ -23,6 +23,9 @@ def get_current_user(authorization: str = Header(..., description="Bearer JWT to
     Raises:
         UnauthorizedException: If token is invalid or missing.
     """
+    if not authorization:
+        raise UnauthorizedException(message="Authentication token is required.")
+
     if not authorization.startswith("Bearer "):
         raise UnauthorizedException(message="Invalid authorization header format.")
 

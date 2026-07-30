@@ -1,11 +1,10 @@
 """
 Gemini Client.
 
-Handles communication with Google Gemini API.
+Handles communication with Google Gemini API with fallback for rate limits.
 Only this module communicates with Gemini directly.
 """
 
-# pyrefly: ignore [missing-import]
 import google.generativeai as genai
 from app.config import get_settings
 from app.core.exceptions import AIServiceException
@@ -30,20 +29,29 @@ def get_gemini_response(system_prompt: str, user_prompt: str) -> str:
     Raises:
         AIServiceException: If Gemini fails.
     """
-    try:
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=system_prompt,
-        )
+    models_to_try = [
+        "gemini-flash-latest",
+        "gemini-2.0-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
 
-        response = model.generate_content(user_prompt)
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=system_prompt,
+            )
 
-        if response and response.text:
-            return response.text.strip()
+            response = model.generate_content(user_prompt)
 
-        return "I'm unable to provide a response right now. Please try again."
+            if response and response.text:
+                return response.text.strip()
 
-    except Exception as e:
-        raise AIServiceException(
-            message="I'm unable to answer that right now. Please try again later."
-        )
+        except Exception as e:
+            # Try next active model on rate limit / quota exceptions
+            continue
+
+    raise AIServiceException(
+        message="I'm unable to answer that right now. Please try again in a few moments."
+    )

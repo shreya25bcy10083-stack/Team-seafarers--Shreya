@@ -11,6 +11,9 @@ from app.repositories.notification_repository import NotificationRepository
 from app.core.exceptions import NotFoundException
 
 
+from app.repositories.activity_repository import ActivityRepository
+
+
 class SOSService:
     """Handles SOS emergency triggers and notifications."""
 
@@ -18,6 +21,7 @@ class SOSService:
         self.sos_repo = SOSRepository(db)
         self.patient_repo = PatientRepository(db)
         self.notification_repo = NotificationRepository(db)
+        self.activity_repo = ActivityRepository(db)
 
     def trigger_sos(self, user_id: int, latitude: float | None = None, longitude: float | None = None) -> dict:
         """
@@ -42,6 +46,13 @@ class SOSService:
             title="🚨 SOS Emergency Triggered",
             description=f"Emergency alert sent. Location: {latitude}, {longitude}",
             type="emergency",
+        )
+
+        self.activity_repo.create_log(
+            patient_id=patient.id,
+            event_type="sos",
+            title="🚨 SOS Emergency Triggered",
+            description=f"Patient pressed SOS button. Location: {latitude or 'N/A'}, {longitude or 'N/A'}",
         )
 
         return {

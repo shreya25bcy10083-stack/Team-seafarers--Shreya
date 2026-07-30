@@ -23,7 +23,7 @@ def chat(
 ):
     """Chat with the AI Companion."""
     service = AIService(db)
-    data = service.chat(current_user["user_id"], request.message)
+    data = service.chat(current_user["user_id"], request.message, conversation_history=request.conversation_history)
     return success_response(data=data)
 
 

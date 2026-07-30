@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/colors';
 
-export type AvatarState = 'IDLE' | 'SMILING' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'HAPPY' | 'CONCERNED' | 'EMERGENCY';
+export type AvatarState = 'IDLE' | 'GREETING' | 'SMILING' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'HAPPY' | 'CONCERNED' | 'REMINDER' | 'EMERGENCY';
 
 interface AvatarProps {
   state?: AvatarState;
@@ -26,6 +26,8 @@ export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', sho
 
   const getExpressionEmoji = () => {
     switch (state) {
+      case 'GREETING':
+        return '👋🏽';
       case 'SMILING':
       case 'HAPPY':
         return '😊';
@@ -37,6 +39,8 @@ export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', sho
         return '🗣️';
       case 'CONCERNED':
         return '😟';
+      case 'REMINDER':
+        return '⏰';
       case 'EMERGENCY':
         return '🚨';
       default:
@@ -47,14 +51,41 @@ export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', sho
   const getBorderColor = () => {
     switch (state) {
       case 'EMERGENCY':
-        return COLORS.error.main;
+        return COLORS.semantic.error || '#EF4444';
+      case 'REMINDER':
+      case 'CONCERNED':
+        return COLORS.semantic.warning || '#F59E0B';
       case 'SPEAKING':
       case 'LISTENING':
-        return COLORS.secondary.main;
+        return COLORS.secondary.main || '#10B981';
       case 'THINKING':
-        return COLORS.accent.main;
+        return COLORS.accent.main || '#8B5CF6';
+      case 'GREETING':
+      case 'HAPPY':
+        return COLORS.primary.main || '#3B82F6';
       default:
-        return COLORS.primary.main;
+        return COLORS.primary.main || '#3B82F6';
+    }
+  };
+
+  const getLabelText = () => {
+    switch (state) {
+      case 'GREETING':
+        return 'Hello!';
+      case 'THINKING':
+        return 'Thinking...';
+      case 'SPEAKING':
+        return 'Speaking...';
+      case 'LISTENING':
+        return 'Listening...';
+      case 'REMINDER':
+        return 'Medication Time!';
+      case 'CONCERNED':
+        return 'Checking on you';
+      case 'EMERGENCY':
+        return 'SOS Alert!';
+      default:
+        return 'CareCompanion';
     }
   };
 
@@ -71,13 +102,9 @@ export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', sho
           },
         ]}
       >
-        <Text style={{ fontSize: dim * 0.5 }}>{getExpressionEmoji()}</Text>
+        <Text style={{ fontSize: dim * 0.48 }}>{getExpressionEmoji()}</Text>
       </View>
-      {showLabel && (
-        <Text style={styles.stateLabel}>
-          {state === 'THINKING' ? 'Thinking...' : state === 'SPEAKING' ? 'Speaking' : state === 'LISTENING' ? 'Listening...' : 'CareCompanion'}
-        </Text>
-      )}
+      {showLabel && <Text style={styles.stateLabel}>{getLabelText()}</Text>}
     </View>
   );
 };
@@ -88,11 +115,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarCircle: {
-    backgroundColor: COLORS.accent.light,
+    backgroundColor: COLORS.neutral.white,
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.accent.main,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,

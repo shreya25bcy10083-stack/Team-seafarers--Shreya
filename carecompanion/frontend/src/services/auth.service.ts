@@ -35,31 +35,9 @@ export const AuthService = {
       };
     }
 
-    // Fallback for mock/demo mode
-    await mockDelay(400);
-    const mockToken = 'mock_jwt_token_12345';
-    ApiClient.setToken(mockToken);
-    const mockUser: UserProfile = {
-      id: 'usr_101',
-      name: role === 'PATIENT' ? 'Eleanor Vance' : 'Dr. Sarah Jenkins',
-      email,
-      role,
-      phone: '+1 (555) 234-5678',
-      emergencyContactName: 'Robert Vance (Son)',
-      emergencyContactPhone: '+1 (555) 987-6543',
-      linkedCaregiverId: role === 'PATIENT' ? 'usr_202' : undefined,
-      linkedCaregiverName: role === 'PATIENT' ? 'Robert Vance' : undefined,
-      linkedPatientIds: role === 'CAREGIVER' ? ['usr_101'] : undefined,
-      createdAt: new Date().toISOString(),
-    };
-
     return {
-      success: true,
-      message: 'Login successful (Mock Mode)',
-      data: {
-        user: mockUser,
-        token: mockToken,
-      },
+      success: false,
+      message: response.message || 'Invalid email or password.',
     };
   },
 

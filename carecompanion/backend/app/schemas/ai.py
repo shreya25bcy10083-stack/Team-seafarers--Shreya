@@ -11,6 +11,7 @@ from typing import Optional
 class ChatRequest(BaseModel):
     """AI chat request."""
     message: str = Field(..., min_length=1, description="User message")
+    conversation_history: Optional[list[dict]] = Field(default=None, description="Recent message history [{role: 'user'|'model', content: '...'}]")
 
 
 class ChatResponse(BaseModel):

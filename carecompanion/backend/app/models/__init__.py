@@ -10,6 +10,7 @@ from app.models.wellness_check import WellnessCheck
 from app.models.medical_report import MedicalReport
 from app.models.notification import Notification
 from app.models.sos_event import SOSEvent
+from app.models.activity_log import ActivityLog
 
 __all__ = [
     "User",
@@ -22,4 +23,5 @@ __all__ = [
     "MedicalReport",
     "Notification",
     "SOSEvent",
+    "ActivityLog",
 ]

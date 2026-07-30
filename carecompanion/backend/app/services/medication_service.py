@@ -10,12 +10,16 @@ from app.repositories.patient_repository import PatientRepository
 from app.core.exceptions import NotFoundException, ForbiddenException
 
 
+from app.repositories.activity_repository import ActivityRepository
+
+
 class MedicationService:
     """Handles medication management and adherence tracking."""
 
     def __init__(self, db: Session):
         self.med_repo = MedicationRepository(db)
         self.patient_repo = PatientRepository(db)
+        self.activity_repo = ActivityRepository(db)
 
     def _get_patient_id(self, user_id: int) -> int:
         """Helper to get patient ID from user ID."""
@@ -44,6 +48,13 @@ class MedicationService:
         """Add a new medication."""
         patient_id = self._get_patient_id(user_id)
         medication = self.med_repo.create(patient_id=patient_id, medicine_name=name, **kwargs)
+
+        self.activity_repo.create_log(
+            patient_id=patient_id,
+            event_type="medication",
+            title=f"Medication Scheduled: {name}",
+            description=f"Dosage: {kwargs.get('dosage', 'N/A')}",
+        )
 
         return {
             "id": medication.id,
@@ -101,4 +112,13 @@ class MedicationService:
             raise ForbiddenException(message="You do not own this medication.")
 
         log = self.med_repo.create_log(medication_id=medication_id, status=status)
+
+        status_title = "Medication Taken" if status == "taken" else f"Medication {status.capitalize()}"
+        self.activity_repo.create_log(
+            patient_id=patient_id,
+            event_type="medication",
+            title=f"{status_title}: {medication.medicine_name}",
+            description=f"Status: {status.upper()}",
+        )
+
         return {"medication_id": medication_id, "status": status}

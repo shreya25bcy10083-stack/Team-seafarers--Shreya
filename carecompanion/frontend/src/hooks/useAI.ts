@@ -5,7 +5,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: 'msg_0',
     sender: 'AI',
-    text: 'Hello Eleanor! I am your CareCompanion. How are you feeling today? Remember to take your morning medication.',
+    text: 'Hello! I am your CareCompanion AI. How can I help you with your health or medications today?',
     timestamp: '08:00 AM',
     avatarState: 'SPEAKING',
   },
@@ -25,12 +25,18 @@ export const useAI = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
+    // Format current message history into history array for Gemini context
+    const historyPayload = messages.slice(-8).map((m) => ({
+      role: m.sender === 'USER' ? 'user' : 'model',
+      content: m.text,
+    }));
+
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
     try {
-      const res = await AIService.sendMessage(text);
-      if (res.success) {
+      const res = await AIService.sendMessage(text, historyPayload);
+      if (res.success && res.data) {
         setMessages((prev) => [...prev, res.data]);
       }
     } catch (err) {

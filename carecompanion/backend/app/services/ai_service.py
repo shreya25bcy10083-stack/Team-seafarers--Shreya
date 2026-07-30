@@ -23,13 +23,14 @@ class AIService:
         self.patient_repo = PatientRepository(db)
         self.report_repo = ReportRepository(db)
 
-    def chat(self, user_id: int, message: str) -> dict:
+    def chat(self, user_id: int, message: str, conversation_history: list[dict] | None = None) -> dict:
         """
         Process a chat message through Gemini.
 
         Args:
             user_id: Current user's ID.
             message: User's chat message.
+            conversation_history: Optional recent turn history [{role, content}].
 
         Returns:
             Formatted AI response dict.
@@ -37,13 +38,23 @@ class AIService:
         patient = self.patient_repo.get_by_user_id(user_id)
         user_name = patient.user.full_name if patient else "User"
 
+        history_text = ""
+        if conversation_history:
+            turns = []
+            for item in conversation_history[-6:]:
+                role_label = "User" if item.get("role") in ["user", "patient"] else "Assistant"
+                turns.append(f"{role_label}: {item.get('content', '')}")
+            history_text = "\n".join(turns)
+
+        context_str = f"Prior Conversation:\n{history_text}" if history_text else "General healthcare conversation."
+
         # Build prompt with context
         system_prompt = get_system_prompt()
         user_prompt = build_prompt(
             "chat_prompt.md",
             role="patient",
             user_name=user_name,
-            context="General healthcare conversation.",
+            context=context_str,
             user_message=message,
         )
 
@@ -53,6 +64,16 @@ class AIService:
         # Apply safety checks
         safe_response = check_safety(raw_response)
         safe_response = add_disclaimer_if_needed(safe_response)
+
+        # Auto-log AI Conversation activity if patient
+        if patient:
+            from app.repositories.activity_repository import ActivityRepository
+            ActivityRepository(self.db).create_log(
+                patient_id=patient.id,
+                event_type="ai",
+                title="AI Companion Conversation",
+                description=f"Topic: '{message[:50]}...'",
+            )
 
         # Format for frontend
         return format_chat_response(safe_response)

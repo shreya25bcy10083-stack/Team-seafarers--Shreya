@@ -17,12 +17,41 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateRegister }) 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole>('PATIENT');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const validateEmail = (emailStr: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(emailStr.trim());
+  };
+
   const handleLogin = async () => {
+    setErrorMessage(null);
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setErrorMessage('Please enter your email address.');
+      return;
+    }
+
+    if (!validateEmail(trimmedEmail)) {
+      setErrorMessage('Invalid email format. (e.g. user@gmail.com)');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters.');
+      return;
+    }
+
     setIsLoading(true);
-    await login(email || 'user@example.com', selectedRole);
+    const result = await login(trimmedEmail, password, selectedRole);
     setIsLoading(false);
+
+    if (!result.success) {
+      setErrorMessage(result.message || 'Login failed. Invalid credentials.');
+    }
   };
 
   return (
@@ -49,11 +78,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateRegister }) 
         </TouchableOpacity>
       </View>
 
+      {errorMessage && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      )}
+
       <InputField
         label="Email Address"
         placeholder="e.g. eleanor@example.com"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          if (errorMessage) setErrorMessage(null);
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
       />
@@ -62,7 +100,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateRegister }) 
         label="Password"
         placeholder="Enter your password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          if (errorMessage) setErrorMessage(null);
+        }}
         secureTextEntry
       />
 
@@ -123,6 +164,20 @@ const styles = StyleSheet.create({
     color: COLORS.primary.main,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
   },
+  errorBanner: {
+    backgroundColor: COLORS.semantic.errorBg || '#FEE2E2',
+    borderWidth: 1,
+    borderColor: COLORS.semantic.error || '#EF4444',
+    borderRadius: 8,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  errorText: {
+    color: COLORS.semantic.error || '#DC2626',
+    fontSize: TYPOGRAPHY.fontSize.caption,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    textAlign: 'center',
+  },
   btnWrapper: {
     marginTop: SPACING.md,
   },
@@ -131,8 +186,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: COLORS.secondary.main,
+    color: COLORS.primary.main,
     fontSize: TYPOGRAPHY.fontSize.body,
-    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
   },
 });

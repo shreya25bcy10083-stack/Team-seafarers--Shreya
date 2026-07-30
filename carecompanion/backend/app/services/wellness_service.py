@@ -10,12 +10,16 @@ from app.repositories.patient_repository import PatientRepository
 from app.core.exceptions import NotFoundException
 
 
+from app.repositories.activity_repository import ActivityRepository
+
+
 class WellnessService:
     """Handles daily wellness check-ins and history."""
 
     def __init__(self, db: Session):
         self.wellness_repo = WellnessRepository(db)
         self.patient_repo = PatientRepository(db)
+        self.activity_repo = ActivityRepository(db)
 
     def checkin(self, user_id: int, **kwargs) -> dict:
         """
@@ -32,6 +36,13 @@ class WellnessService:
             kwargs["energy_level"] = kwargs.pop("energy")
 
         check = self.wellness_repo.create(patient_id=patient.id, **kwargs)
+
+        self.activity_repo.create_log(
+            patient_id=patient.id,
+            event_type="wellness",
+            title="Wellness Check Completed",
+            description=f"Mood: {check.mood or 'N/A'}, Energy: {check.energy_level or 'N/A'}, Pain: {check.pain_level if check.pain_level is not None else 'N/A'}/10",
+        )
 
         return {
             "id": check.id,

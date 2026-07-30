@@ -14,12 +14,12 @@ export interface ChatMessage {
 }
 
 export const AIService = {
-  async sendMessage(userMessage: string): Promise<ApiResponse<ChatMessage>> {
+  async sendMessage(userMessage: string, conversationHistory?: { role: string; content: string }[]): Promise<ApiResponse<ChatMessage>> {
     const response = await ApiClient.request<{ reply: string; tips?: string[]; warning?: string; disclaimer?: string }>(
       API_CONFIG.ENDPOINTS.AI.CHAT,
       {
         method: 'POST',
-        body: { message: userMessage },
+        body: { message: userMessage, conversation_history: conversationHistory },
       }
     );
 

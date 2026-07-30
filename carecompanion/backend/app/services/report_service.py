@@ -12,12 +12,16 @@ from app.utils.file_helpers import upload_to_cloudinary
 from app.core.exceptions import NotFoundException, ForbiddenException
 
 
+from app.repositories.activity_repository import ActivityRepository
+
+
 class ReportService:
     """Handles report upload, storage, and retrieval."""
 
     def __init__(self, db: Session):
         self.report_repo = ReportRepository(db)
         self.patient_repo = PatientRepository(db)
+        self.activity_repo = ActivityRepository(db)
 
     async def upload_report(self, user_id: int, file: UploadFile) -> dict:
         """
@@ -38,6 +42,13 @@ class ReportService:
             patient_id=patient.id,
             report_name=file.filename or "Untitled Report",
             report_url=upload_result["url"],
+        )
+
+        self.activity_repo.create_log(
+            patient_id=patient.id,
+            event_type="report",
+            title=f"Medical Report Uploaded: {report.report_name}",
+            description="Report ready for viewing and AI analysis.",
         )
 
         return {

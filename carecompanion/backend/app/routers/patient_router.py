@@ -53,3 +53,14 @@ def generate_invite_code(
     service = PatientService(db)
     code = service.generate_invite_code(current_user["user_id"])
     return success_response(data={"invite_code": code})
+
+
+@router.post("/link")
+def link_caregiver(
+    current_user: dict = Depends(require_patient),
+    db: Session = Depends(get_db),
+):
+    """Generate or retrieve patient invite code for caregiver linking."""
+    service = PatientService(db)
+    code = service.generate_invite_code(current_user["user_id"])
+    return success_response(data={"invite_code": code}, message="Invite code generated for caregiver linking.")

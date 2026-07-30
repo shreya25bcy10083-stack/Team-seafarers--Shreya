@@ -11,13 +11,9 @@ interface RoleSelectionScreenProps {
 }
 
 export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({ onSelectRole }) => {
-  const { login } = useAuth();
-
-  const handleChooseRole = async (role: UserRole) => {
+  const handleChooseRole = (role: UserRole) => {
     if (onSelectRole) {
       onSelectRole(role);
-    } else {
-      await login(role === 'PATIENT' ? 'eleanor@example.com' : 'caregiver@example.com', role);
     }
   };
 

@@ -35,3 +35,27 @@ def mark_as_read(
     service = NotificationService(db)
     data = service.mark_as_read(notification_id)
     return success_response(data=data, message="Notification marked as read.")
+
+
+@router.post("/send")
+def send_notification(
+    patient_id: int,
+    title: str,
+    type: str,
+    description: str | None = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Send a manual or high-priority system notification."""
+    from app.repositories.notification_repository import NotificationRepository
+    repo = NotificationRepository(db)
+    notification = repo.create(patient_id=patient_id, title=title, type=type, description=description)
+
+    return success_response(
+        data={
+            "id": notification.id,
+            "title": notification.title,
+            "type": notification.type,
+        },
+        message="Notification sent successfully.",
+    )
