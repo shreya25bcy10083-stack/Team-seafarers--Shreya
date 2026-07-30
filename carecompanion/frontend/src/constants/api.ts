@@ -3,15 +3,18 @@
  * Aligned with backend FastAPI route definitions and API_SCHEMA.md.
  */
 
-import { Platform } from 'react-native';
+// Platform import kept for potential future use
 
 const LOCAL_IP = '172.25.163.241';
 
+// Production backend deployed on Render
+const RENDER_URL = 'https://carecompanion-backend-96fd.onrender.com/api/v1';
+
 export const API_CONFIG = {
-  // Mobile devices connect using laptop local IP, Web uses localhost
+  // APK / production uses Render; local dev uses localhost / LAN IP
   BASE_URL:
     process.env.EXPO_PUBLIC_API_URL ||
-    (Platform.OS === 'web' ? 'http://localhost:8000/api/v1' : `http://${LOCAL_IP}:8000/api/v1`),
+    RENDER_URL,
   TIMEOUT: 60000,
   ENDPOINTS: {
     AUTH: {
