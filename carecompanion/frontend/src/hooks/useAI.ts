@@ -37,7 +37,7 @@ export const useAI = () => {
     try {
       const res = await AIService.sendMessage(text, historyPayload);
       if (res.success && res.data) {
-        setMessages((prev) => [...prev, res.data]);
+        setMessages((prev) => [...prev, res.data!]);
       }
     } catch (err) {
       console.error('AI message failed', err);

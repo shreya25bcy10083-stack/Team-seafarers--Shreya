@@ -11,7 +11,7 @@ export const usePatient = () => {
     setError(null);
     try {
       const res = await PatientService.getCaregiverPatients();
-      if (res.success) {
+      if (res.success && res.data) {
         setPatients(res.data);
       } else {
         setError(res.message);

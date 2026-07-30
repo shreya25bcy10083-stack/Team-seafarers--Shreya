@@ -6,13 +6,14 @@ Only this service communicates with Gemini (via gemini_client).
 """
 
 from sqlalchemy.orm import Session
-from app.ai.gemini_client import get_gemini_response
+from app.ai.gemini_client import get_gemini_response, get_gemini_file_response
 from app.ai.prompt_builder import build_prompt, get_system_prompt
 from app.ai.formatter import format_chat_response, format_report_response
 from app.ai.safety import check_safety, add_disclaimer_if_needed
 from app.repositories.patient_repository import PatientRepository
 from app.repositories.report_repository import ReportRepository
 from app.core.exceptions import NotFoundException
+import json
 
 
 class AIService:
@@ -78,13 +79,15 @@ class AIService:
         # Format for frontend
         return format_chat_response(safe_response)
 
-    def analyze_report(self, user_id: int, report_id: int) -> dict:
+    def analyze_report(self, user_id: int, report_id: int, file_bytes: bytes | None = None, mime_type: str = "application/pdf") -> dict:
         """
         Analyze a medical report using Gemini.
 
         Args:
             user_id: Current user's ID.
             report_id: ID of the report to analyze.
+            file_bytes: Optional uploaded raw file bytes.
+            mime_type: File MIME type.
 
         Returns:
             Formatted report summary dict.
@@ -104,25 +107,24 @@ class AIService:
         user_prompt = build_prompt(
             "report_prompt.md",
             user_name=user_name,
-            report_text=f"Report: {report.report_name}\nURL: {report.report_url}",
+            report_text=f"Report Name: {report.report_name}\nURL: {report.report_url}",
         )
 
-        # Get Gemini response
-        raw_response = get_gemini_response(system_prompt, user_prompt)
+        if file_bytes:
+            raw_response = get_gemini_file_response(system_prompt, user_prompt, file_bytes, mime_type)
+        else:
+            raw_response = get_gemini_response(system_prompt, user_prompt)
 
-        # Apply safety
-        safe_response = check_safety(raw_response)
-        safe_response = add_disclaimer_if_needed(safe_response)
+        formatted_res = format_report_response(raw_response)
 
-        # Store summary in database
-        self.report_repo.update_summary(report, safe_response)
+        # Store JSON summary string in database
+        self.report_repo.update_summary(report, json.dumps(formatted_res))
 
-        # Format for frontend
-        return format_report_response(safe_response)
+        return formatted_res
 
     async def upload_and_analyze_report(self, user_id: int, file) -> dict:
         """
-        Upload a medical report and analyze it using Gemini.
+        Upload a medical report to Cloudinary, save in DB, and analyze it using Gemini.
 
         Args:
             user_id: Current user's ID.
@@ -131,9 +133,16 @@ class AIService:
         Returns:
             Formatted report summary dict.
         """
+        contents = await file.read()
+        await file.seek(0)
+
         from app.services.report_service import ReportService
         report_service = ReportService(self.db)
         uploaded_report = await report_service.upload_report(user_id, file)
 
-        return self.analyze_report(user_id, uploaded_report["id"])
-
+        return self.analyze_report(
+            user_id,
+            uploaded_report["id"],
+            file_bytes=contents,
+            mime_type=file.content_type or "application/pdf"
+        )

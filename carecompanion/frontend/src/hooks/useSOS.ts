@@ -9,7 +9,7 @@ export const useSOS = () => {
     setIsTriggering(true);
     try {
       const res = await SOSService.triggerSOS(patientId);
-      if (res.success) {
+      if (res.success && res.data) {
         setActiveAlert(res.data);
       }
     } catch (err) {

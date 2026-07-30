@@ -12,7 +12,7 @@ export const useReports = (patientId?: string) => {
     setError(null);
     try {
       const res = await ReportService.getReports(patientId);
-      if (res.success) {
+      if (res.success && res.data) {
         setReports(res.data);
       } else {
         setError(res.message);
@@ -28,11 +28,11 @@ export const useReports = (patientId?: string) => {
     fetchReports();
   }, [fetchReports]);
 
-  const uploadReport = async (title: string, category: MedicalReport['category'], fileUri: string) => {
+  const uploadReportFile = async (file: File | { uri: string; name: string; type: string }) => {
     try {
-      const res = await ReportService.uploadReport(title, category, fileUri);
-      if (res.success) {
-        setReports((prev) => [res.data, ...prev]);
+      const res = await ReportService.uploadReportFile(file);
+      if (res.success && res.data) {
+        setReports((prev) => [res.data!, ...prev]);
         return res.data;
       }
     } catch (err) {
@@ -46,6 +46,6 @@ export const useReports = (patientId?: string) => {
     isLoading,
     error,
     refetch: fetchReports,
-    uploadReport,
+    uploadReportFile,
   };
 };

@@ -30,11 +30,15 @@ export const API_CONFIG = {
       DASHBOARD: '/caregiver/dashboard',
       PATIENTS: '/caregiver/dashboard',
       PATIENT_DETAIL: (id: string | number) => `/caregiver/patient/${id}`,
+      MEDICATIONS: '/caregiver/medications',
+      WELLNESS: '/caregiver/wellness',
+      ACTIVITY: '/caregiver/activity',
       ALERTS: '/notifications',
     },
     MEDICATION: {
       LIST: '/medications',
       CREATE: '/medications',
+      ADD: '/medications',
       UPDATE: (id: string | number) => `/medications/${id}`,
       DELETE: (id: string | number) => `/medications/${id}`,
       LOG: '/medications/log',
@@ -60,6 +64,7 @@ export const API_CONFIG = {
     },
     NOTIFICATION: {
       LIST: '/notifications',
+      READ: (id: string | number) => `/notifications/${id}`,
       MARK_READ: (id: string | number) => `/notifications/${id}`,
     },
   },

@@ -20,7 +20,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setIsLoading(true);
     try {
       const res = await NotificationService.getNotifications();
-      if (res.success) {
+      if (res.success && res.data) {
         setNotifications(res.data);
       }
     } catch (e) {

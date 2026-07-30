@@ -1,20 +1,7 @@
-import { ApiClient, mockDelay } from './api';
+import { ApiClient } from './api';
 import { API_CONFIG } from '../constants/api';
 import { ApiResponse } from '../types/API';
 import { WellnessCheckIn } from '../types/Wellness';
-
-const MOCK_WELLNESS_LOGS: WellnessCheckIn[] = [
-  {
-    id: 'well_01',
-    patientId: 'usr_101',
-    date: new Date().toISOString().split('T')[0],
-    mood: 'GOOD',
-    energy: 'HIGH',
-    painLevel: 2,
-    sleepHours: 7.5,
-    notes: 'Feeling bright and refreshed after morning walk.',
-  },
-];
 
 export const WellnessService = {
   async submitCheckIn(data: Omit<WellnessCheckIn, 'id' | 'patientId' | 'date'>): Promise<ApiResponse<WellnessCheckIn>> {
@@ -25,7 +12,7 @@ export const WellnessService = {
         sleep_hours: Math.round(data.sleepHours),
         energy: data.energy,
         pain_level: data.painLevel,
-        notes: data.notes,
+        notes: data.notes || '',
       },
     });
 
@@ -33,7 +20,7 @@ export const WellnessService = {
       const d = response.data;
       const created: WellnessCheckIn = {
         id: String(d.id),
-        patientId: 'usr_101',
+        patientId: 'patient',
         date: new Date().toISOString().split('T')[0],
         mood: d.mood || data.mood,
         energy: d.energy_level || data.energy,
@@ -48,19 +35,9 @@ export const WellnessService = {
       };
     }
 
-    // Fallback for mock mode
-    await mockDelay(400);
-    const newEntry: WellnessCheckIn = {
-      id: `well_${Date.now()}`,
-      patientId: 'usr_101',
-      date: new Date().toISOString().split('T')[0],
-      ...data,
-    };
-    MOCK_WELLNESS_LOGS.unshift(newEntry);
     return {
-      success: true,
-      message: 'Daily wellness check-in recorded',
-      data: newEntry,
+      success: false,
+      message: response.message || 'Failed to submit wellness check-in.',
     };
   },
 
@@ -70,13 +47,13 @@ export const WellnessService = {
     if (response.success && Array.isArray(response.data)) {
       const logs: WellnessCheckIn[] = response.data.map((c) => ({
         id: String(c.id),
-        patientId: patientId || 'usr_101',
+        patientId: patientId || 'patient',
         date: c.created_at ? c.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
         mood: c.mood || 'GOOD',
         energy: c.energy_level || 'HIGH',
         painLevel: c.pain_level ?? 0,
         sleepHours: c.sleep_hours ?? 8,
-        notes: c.notes,
+        notes: c.notes || '',
       }));
       return {
         success: true,
@@ -85,12 +62,10 @@ export const WellnessService = {
       };
     }
 
-    // Fallback for mock mode
-    await mockDelay(300);
     return {
       success: true,
-      message: 'Wellness logs retrieved',
-      data: MOCK_WELLNESS_LOGS,
+      message: 'No wellness logs found',
+      data: [],
     };
   },
 };

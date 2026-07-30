@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { SPACING } from '../../constants/spacing';
@@ -7,23 +7,16 @@ import { MedicationCard } from '../../components/cards/MedicationCard';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorView } from '../../components/common/ErrorView';
 import { EmptyState } from '../../components/common/EmptyState';
-import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { useMedication } from '../../hooks/useMedication';
-import { ConfirmationDialog } from '../../components/dialogs/ConfirmationDialog';
 
 export const MedicationScreen: React.FC = () => {
-  const { medications, isLoading, error, refetch, updateStatus, addMedication } = useMedication();
-  const [showAddModal, setShowAddModal] = useState(false);
+  const { medications, isLoading, error, refetch, updateStatus } = useMedication();
 
   return (
     <View style={styles.container} accessibilityLabel="Medication Schedule Screen">
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.screenTitle}>Medication Schedule</Text>
-        <Text style={styles.subtitle}>Track and log your daily prescribed medicines.</Text>
-
-        <View style={styles.addBtnWrapper}>
-          <PrimaryButton title="+ Add New Medication" onPress={() => setShowAddModal(true)} variant="purple" />
-        </View>
+        <Text style={styles.subtitle}>Track and log your daily prescribed medicines set by your caregiver.</Text>
 
         {isLoading ? (
           <LoadingSpinner message="Fetching your medication schedule..." />
@@ -32,10 +25,8 @@ export const MedicationScreen: React.FC = () => {
         ) : medications.length === 0 ? (
           <EmptyState
             icon="💊"
-            title="No Medications Added"
-            description="You currently have no prescribed medications scheduled."
-            actionLabel="Add Medication"
-            onAction={() => setShowAddModal(true)}
+            title="No Medications Scheduled"
+            description="Your caregiver has not added any medications to your schedule yet."
           />
         ) : (
           medications.map((med) => (
@@ -48,19 +39,6 @@ export const MedicationScreen: React.FC = () => {
           ))
         )}
       </ScrollView>
-
-      <ConfirmationDialog
-        visible={showAddModal}
-        title="Add Medication"
-        message="Would you like to log a new daily medication schedule?"
-        confirmLabel="Add Lisinopril 5mg"
-        cancelLabel="Close"
-        onConfirm={async () => {
-          await addMedication({ name: 'Lisinopril', dosage: '5mg', frequency: 'Daily' });
-          setShowAddModal(false);
-        }}
-        onCancel={() => setShowAddModal(false)}
-      />
     </View>
   );
 };
@@ -82,8 +60,5 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.neutral.textSecondary,
     marginBottom: SPACING.md,
-  },
-  addBtnWrapper: {
-    marginBottom: SPACING.lg,
   },
 });
