@@ -1,0 +1,27 @@
+# Root Gitignore
+
+# Node & Frontend
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
+
+# Python & Backend
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/venv/
+**/.venv/
+
+# Environment & Secrets
+**/.env
+**/.env.*
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
