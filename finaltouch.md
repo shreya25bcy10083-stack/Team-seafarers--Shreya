@@ -1,401 +1,237 @@
-# FINAL_RELEASE_BLOCKERS.md
+# FINAL_SYNC_FIXES.md
 
 # CareCompanion
 
-## Final Release Blockers
+## Final Data Synchronization Fixes
 
-Version: 1.3
+Version: 1.4
 
 Status: Critical
 
-Priority: Must Fix Before Final Submission
+Priority: Release Blocking
 
 ---
 
 # Purpose
 
-This document defines the final critical implementation issues preventing CareCompanion from functioning as intended.
+The remaining issues are not UI problems. They are data ownership and synchronization issues.
 
-No UI improvements or additional features should be implemented until every issue in this document has been resolved.
+The application must treat the patient as the single source of truth.
 
-The application must function as a complete end-to-end healthcare system with synchronized patient and caregiver data.
+Every patient update must be visible to every linked caregiver.
 
 ---
 
-# Critical Issue 1
+# Issue 1
 
-## Patient-Caregiver Linking
+## Patient Dashboard Wellness Summary
 
 ### Current Behaviour
 
-The caregiver can enter an invite code.
+The patient submits a wellness check.
 
-A patient profile appears.
+The wellness record is successfully saved.
 
-However, the displayed profile belongs to the caregiver instead of the linked patient.
+The wellness history updates correctly.
 
-The relationship between patient and caregiver is incorrect.
+However, the dashboard summary card always displays the default values (for example, "Happy") instead of the latest submitted wellness data.
 
 ---
 
 ### Expected Behaviour
 
-Patient
+Dashboard loads
 
 ↓
 
-Registers
+Fetch latest wellness record
 
 ↓
-
-Generates Invite Code
-
-↓
-
-Caregiver Registers
-
-↓
-
-Enters Invite Code
-
-↓
-
-Backend validates invite code
-
-↓
-
-Backend links caregiver_id to patient_id
-
-↓
-
-Relationship stored in database
-
-↓
-
-Caregiver dashboard loads the linked patient's information
-
-The caregiver should NEVER see their own profile as the patient.
-
----
-
-### Verification
-
-✓ Invite code creates correct relationship
-
-✓ Correct patient is loaded
-
-✓ Caregiver never becomes the patient
-
-✓ Relationship persists after logout/login
-
----
-
-# Critical Issue 2
-
-## Shared Patient Data Synchronization
-
-### Current Behaviour
-
-Patient updates are isolated.
-
-Caregiver dashboard does not reflect patient changes.
-
-Both users appear to operate on separate datasets.
-
----
-
-### Expected Behaviour
-
-Patient Data
-
-↓
-
-Database
-
-↓
-
-Shared Record
-
-↓
-
-Patient Dashboard
-
-↓
-
-Caregiver Dashboard
-
-Both dashboards must always reference the SAME patient record.
-
-There should never be duplicate patient objects.
-
----
-
-### Verification
-
-Patient updates
-
-↓
-
-Database updated
-
-↓
-
-Caregiver refreshes dashboard
-
-↓
-
-Updated information appears immediately
-
----
-
-# Critical Issue 3
-
-## Wellness Synchronization
-
-### Current Behaviour
-
-Patient submits wellness check.
-
-Submission succeeds.
-
-Caregiver dashboard does not update.
-
----
-
-### Expected Behaviour
-
-Patient
-
-↓
-
-Submit Wellness
-
-↓
-
-Save to Database
-
-↓
-
-Associate with patient_id
-
-↓
-
-Caregiver Dashboard
-
-↓
-
-Display latest wellness
-
-↓
-
-Update wellness history
-
-↓
-
-Refresh AI summary
-
----
-
-### Dashboard Requirements
 
 Display
 
-- Latest Mood
+- Mood
+- Pain Level
 - Sleep Hours
 - Energy Level
-- Pain Level
 - Notes
-- Submission Time
+
+The dashboard must never display hardcoded or default wellness values.
+
+Always display the latest wellness entry from the database.
 
 ---
 
 ### Verification
 
-Patient submits wellness.
+Submit
 
-Database stores record.
+Mood = Sad
 
-Caregiver dashboard immediately displays latest submission.
+↓
+
+Return to Dashboard
+
+↓
+
+Dashboard shows
+
+Mood = Sad
 
 ---
 
-# Critical Issue 4
+# Issue 2
 
-## Medication Synchronization
+## Medication Ownership
 
 ### Current Behaviour
 
-Medication changes are not synchronized.
+Patient and caregiver are linked.
 
-Patient and caregiver view inconsistent medication information.
+However, when the caregiver attempts to add medication,
+
+the application responds with
+
+"Patient account required."
 
 ---
 
 ### Expected Behaviour
+
+The caregiver should manage medications for the linked patient.
+
+Workflow
 
 Caregiver
 
 ↓
 
-Creates Medication
+Open Dashboard
 
 ↓
 
-Database
+Linked Patient Loaded
 
 ↓
 
-Patient Dashboard
+Add Medication
 
 ↓
 
-Medication List Updated
+Medication saved using linked patient_id
 
 ↓
 
-Reminder Created
+Patient dashboard displays medication
 
-↓
-
-Caregiver Dashboard Updated
-
-Patient status updates
-
-↓
-
-Database
-
-↓
-
-Caregiver Dashboard
-
-↓
-
-Medication Adherence Updated
+The caregiver should never be required to authenticate as a patient.
 
 ---
 
-### Verification
+### Backend Requirements
 
-✓ Caregiver creates medication
+When a caregiver performs medication actions
 
-✓ Patient immediately sees medication
+DO NOT
 
-✓ Patient marks medication as taken
+Use
 
-✓ Caregiver sees updated status
+authenticated_user.id
 
----
+Instead
 
-# Root Cause Investigation
+Resolve
 
-Before modifying code, inspect the current implementation for:
+linked_patient_id
 
-- Incorrect foreign key usage
-- Incorrect patient_id assignment
-- Incorrect caregiver_id assignment
-- Dashboard querying authenticated user instead of linked patient
-- Missing JOIN queries
-- Incorrect repository methods
-- Incorrect API responses
-- Incorrect state synchronization
+Then
 
-Do not apply superficial fixes.
+Create medication using
 
-Identify and resolve the actual data relationship problem.
+linked_patient_id
 
 ---
 
-# Database Validation
+# Data Ownership Rules
 
-Verify
+Patient owns
 
-users
+- Wellness
+- Medication
+- Reports
+- SOS
+- Activity
 
-patients
+Caregiver manages
 
-caregivers
+- Medication
+- Reports
+- Monitoring
 
-patient_caregivers
+Caregiver never owns patient records.
 
-wellness_checks
-
-medications
-
-activity_logs
-
-Relationships must match DATABASE_SCHEMA.md.
+The caregiver always operates on behalf of the linked patient.
 
 ---
 
 # Backend Validation
 
-Verify every endpoint returns data for the linked patient instead of the authenticated caregiver.
+Inspect
 
-Examples
+- Dashboard queries
+- Medication endpoints
+- Wellness endpoints
+- Patient lookup logic
+- Repository queries
 
-GET /caregiver/dashboard
-
-GET /caregiver/activity
-
-GET /caregiver/wellness
-
-GET /medications
-
-POST /wellness/checkin
-
-All endpoints must use the linked patient relationship.
-
----
-
-# Frontend Validation
-
-Patient Dashboard
-
-↓
-
-Uses authenticated patient
-
-Caregiver Dashboard
-
-↓
-
-Uses linked patient
-
-Never use the caregiver profile as patient data.
+Verify that every caregiver request resolves the linked patient before performing any operation.
 
 ---
 
 # Acceptance Criteria
 
-The release is complete only when
+✓ Patient dashboard always shows the latest wellness data.
 
-✓ Invite code correctly links caregiver and patient
+✓ Dashboard no longer displays default values.
 
-✓ Caregiver dashboard displays linked patient information
+✓ Caregiver can create medications without requiring a patient login.
 
-✓ Wellness updates synchronize immediately
+✓ Medications are stored under the linked patient's account.
 
-✓ Medication updates synchronize immediately
+✓ Patient immediately sees caregiver-added medications.
 
-✓ Both users view the same patient record
-
-✓ No duplicated or incorrect profile data exists
-
-✓ Data persists after logout/login
-
-✓ End-to-end testing confirms synchronization
+✓ Caregiver and patient reference the same patient record.
 
 ---
 
 # Final Instruction
 
-Do not add new features.
+Do not modify the UI.
 
-Do not redesign the UI.
+Do not redesign components.
 
-Focus exclusively on fixing the shared data model, relationship logic, and synchronization until the application behaves as a single connected healthcare system.
+Focus only on fixing backend ownership resolution, dashboard data loading, and synchronization between linked patient and caregiver accounts.
 
 ---
 
 End of Document
+
+Read FINAL_SYNC_FIXES.md before making changes.
+
+The remaining issues are caused by incorrect ownership resolution and data synchronization.
+
+Investigate the backend first.
+
+Do not modify the UI unless necessary.
+
+Specifically verify:
+
+- The patient dashboard loads the latest wellness record instead of default values.
+- Every caregiver action resolves the linked patient_id before creating or querying medications.
+- No endpoint uses the authenticated caregiver's ID where the linked patient's ID should be used.
+
+Fix the root cause, then test the complete workflow:
+Patient → Database → Caregiver Dashboard
+Caregiver → Database → Patient Dashboard
+
+Only mark the issue complete after successful end-to-end verification.
