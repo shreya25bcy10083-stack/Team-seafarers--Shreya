@@ -20,6 +20,7 @@ interface PatientDetailsScreenProps {
 export const PatientDetailsScreen: React.FC<PatientDetailsScreenProps> = ({ patientId = '1', onBack }) => {
   const { medications, refetch } = useMedication(patientId);
   const [wellnessLogs, setWellnessLogs] = useState<any[]>([]);
+  const [syncedReports, setSyncedReports] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Form states for caregiver medication creation
@@ -33,12 +34,20 @@ export const PatientDetailsScreen: React.FC<PatientDetailsScreenProps> = ({ pati
 
   useEffect(() => {
     fetchWellnessHistory();
+    fetchSyncedReports();
   }, [patientId]);
 
   const fetchWellnessHistory = async () => {
     const res = await ApiClient.request<any[]>(API_CONFIG.ENDPOINTS.CAREGIVER.WELLNESS);
     if (res.success && Array.isArray(res.data)) {
       setWellnessLogs(res.data);
+    }
+  };
+
+  const fetchSyncedReports = async () => {
+    const res = await ApiClient.request<any>(API_CONFIG.ENDPOINTS.CAREGIVER.DASHBOARD);
+    if (res.success && res.data?.medical_reports) {
+      setSyncedReports(res.data.medical_reports);
     }
   };
 
@@ -98,51 +107,84 @@ export const PatientDetailsScreen: React.FC<PatientDetailsScreenProps> = ({ pati
           <HealthCard
             title="Pain Scale"
             value={latestWellness?.pain_level !== undefined ? `${latestWellness.pain_level} / 10` : 'N/A'}
-            subtitle={latestWellness?.notes ? `Notes: ${latestWellness.notes}` : 'No notes'}
+            subtitle="Patient self-reported"
             icon="🩺"
-            accentColor={COLORS.warning.main}
           />
         </View>
       </View>
 
+      <View style={styles.gridRow}>
+        <View style={styles.gridCol}>
+          <HealthCard
+            title="Sleep Duration"
+            value={latestWellness?.sleep_hours ? `${latestWellness.sleep_hours} hrs` : 'N/A'}
+            subtitle="Nightly sleep duration"
+            icon="💤"
+          />
+        </View>
+        <View style={styles.gridCol}>
+          <HealthCard
+            title="Energy Level"
+            value={latestWellness?.energy_level || 'N/A'}
+            subtitle="Daily energy level"
+            icon="⚡"
+          />
+        </View>
+      </View>
+
+      {/* Medication Schedule Section */}
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Prescribed Medications</Text>
-        <TouchableOpacity style={styles.addMedBtn} onPress={() => setShowAddModal(true)}>
-          <Text style={styles.addMedBtnText}>+ Add Medication</Text>
-        </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Prescribed Medication Schedule</Text>
+        <SecondaryButton title="+ Add Medication" onPress={() => setShowAddModal(true)} />
       </View>
 
       {medications.length === 0 ? (
-        <View style={styles.emptyCard}>
+        <View style={styles.emptyBox}>
           <Text style={styles.emptyText}>No medications prescribed for this patient yet.</Text>
         </View>
       ) : (
-        medications.map((m) => (
-          <MedicationCard
-            key={m.id}
-            item={m}
-            onDelete={async () => {
-              await MedicationService.deleteMedication(m.id);
-              refetch();
-            }}
-          />
-        ))
+        medications.map((item) => <MedicationCard key={item.id} item={item} />)
       )}
 
-      {onBack && (
-        <View style={styles.backWrapper}>
-          <SecondaryButton title="← Back to Dashboard" onPress={onBack} />
+      {/* Caregiver Synced Medical Reports Section */}
+      <Text style={[styles.sectionTitle, { marginTop: SPACING.xl }]}>📋 Synced Medical Reports & AI Analysis</Text>
+      {syncedReports.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyText}>No medical reports uploaded by patient yet.</Text>
         </View>
+      ) : (
+        syncedReports.map((report) => {
+          let summaryObj: any = null;
+          try {
+            summaryObj = JSON.parse(report.ai_summary);
+          } catch (e) {
+            summaryObj = { summary: report.ai_summary };
+          }
+          const statusBadge = summaryObj?.health_status_label || '🟡 Needs Attention';
+
+          return (
+            <View key={report.id} style={styles.reportCard}>
+              <View style={styles.reportHeader}>
+                <Text style={styles.reportTitle}>📄 {report.report_name}</Text>
+                <View style={styles.statusBadgeBox}>
+                  <Text style={styles.statusBadgeText}>{statusBadge}</Text>
+                </View>
+              </View>
+              <Text style={styles.reportDate}>Uploaded: {report.uploaded_at?.split('T')[0] || 'Recently'}</Text>
+              <Text style={styles.reportSummaryText}>{summaryObj?.summary || report.ai_summary}</Text>
+            </View>
+          );
+        })
       )}
 
-      {/* Add Medication Modal */}
+      {/* Modal: Add Medication */}
       <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>💊 Prescribe New Medication</Text>
+            <Text style={styles.modalTitle}>Schedule Medication for Patient</Text>
 
             {formError && (
-              <View style={styles.errorBox}>
+              <View style={styles.errorBanner}>
                 <Text style={styles.errorText}>{formError}</Text>
               </View>
             )}
@@ -150,7 +192,7 @@ export const PatientDetailsScreen: React.FC<PatientDetailsScreenProps> = ({ pati
             <Text style={styles.label}>Medicine Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Metformin, Lisinopril"
+              placeholder="e.g. Lisinopril, Metformin"
               value={medName}
               onChangeText={setMedName}
             />
@@ -158,7 +200,7 @@ export const PatientDetailsScreen: React.FC<PatientDetailsScreenProps> = ({ pati
             <Text style={styles.label}>Dosage *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 500mg, 1 tablet"
+              placeholder="e.g. 10mg, 1 tablet"
               value={dosage}
               onChangeText={setDosage}
             />
@@ -166,12 +208,12 @@ export const PatientDetailsScreen: React.FC<PatientDetailsScreenProps> = ({ pati
             <Text style={styles.label}>Frequency</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Once daily, Twice after meals"
+              placeholder="e.g. Daily, Twice daily"
               value={frequency}
               onChangeText={setFrequency}
             />
 
-            <Text style={styles.label}>Reminder Time</Text>
+            <Text style={styles.label}>Reminder Time (HH:MM)</Text>
             <TextInput
               style={styles.input}
               placeholder="e.g. 08:00, 20:00"
@@ -179,15 +221,15 @@ export const PatientDetailsScreen: React.FC<PatientDetailsScreenProps> = ({ pati
               onChangeText={setReminderTime}
             />
 
-            <Text style={styles.label}>Notes / Special Instructions (Optional)</Text>
+            <Text style={styles.label}>Instructions (Optional)</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Take with warm water after food"
+              placeholder="e.g. Take with food in morning"
               value={notes}
               onChangeText={setNotes}
             />
 
-            <View style={styles.modalBtnRow}>
+            <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddModal(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
@@ -204,7 +246,6 @@ const styles = StyleSheet.create({
   container: {
     padding: SPACING.md,
     backgroundColor: COLORS.neutral.background,
-    flexGrow: 1,
   },
   name: {
     fontSize: TYPOGRAPHY.fontSize.h1,
@@ -218,7 +259,7 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     flexDirection: 'row',
-    gap: SPACING.sm,
+    gap: SPACING.md,
     marginBottom: SPACING.md,
   },
   gridCol: {
@@ -228,38 +269,65 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: SPACING.md,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   sectionTitle: {
-    fontSize: TYPOGRAPHY.fontSize.h3,
+    fontSize: TYPOGRAPHY.fontSize.h2,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.neutral.textPrimary,
   },
-  addMedBtn: {
-    backgroundColor: COLORS.secondary.main,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: 8,
-  },
-  addMedBtnText: {
-    color: COLORS.neutral.white,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-    fontSize: TYPOGRAPHY.fontSize.caption,
-  },
-  emptyCard: {
-    backgroundColor: COLORS.neutral.card,
-    borderRadius: LAYOUT.borderRadiusCard,
+  emptyBox: {
+    backgroundColor: COLORS.neutral.white,
     padding: SPACING.lg,
+    borderRadius: LAYOUT.borderRadiusCard,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.neutral.border,
   },
   emptyText: {
     color: COLORS.neutral.textSecondary,
     fontSize: TYPOGRAPHY.fontSize.body,
   },
-  backWrapper: {
-    marginTop: SPACING.xl,
+  reportCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: LAYOUT.borderRadiusCard,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.border,
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reportTitle: {
+    fontSize: TYPOGRAPHY.fontSize.h3,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    color: COLORS.neutral.textPrimary,
+  },
+  statusBadgeBox: {
+    backgroundColor: COLORS.warning.light,
+    borderColor: COLORS.warning.main,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusBadgeText: {
+    fontSize: TYPOGRAPHY.fontSize.caption,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    color: COLORS.warning.dark,
+  },
+  reportDate: {
+    fontSize: TYPOGRAPHY.fontSize.caption,
+    color: COLORS.neutral.textSecondary,
+    marginTop: 2,
+    marginBottom: SPACING.xs,
+  },
+  reportSummaryText: {
+    fontSize: TYPOGRAPHY.fontSize.body,
+    color: COLORS.neutral.textPrimary,
+    lineHeight: 18,
   },
   modalOverlay: {
     flex: 1,
@@ -269,7 +337,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: LAYOUT.borderRadiusCard,
+    borderRadius: LAYOUT.borderRadiusLg,
     padding: SPACING.lg,
   },
   modalTitle: {
@@ -278,38 +346,41 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.textPrimary,
     marginBottom: SPACING.md,
   },
-  errorBox: {
+  errorBanner: {
     backgroundColor: COLORS.error.light,
+    borderColor: COLORS.error.main,
+    borderWidth: 1,
     padding: SPACING.sm,
-    borderRadius: 8,
-    marginBottom: SPACING.md,
+    borderRadius: 6,
+    marginBottom: SPACING.sm,
   },
   errorText: {
     color: COLORS.error.dark,
+    fontSize: TYPOGRAPHY.fontSize.caption,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
   },
   label: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    fontSize: TYPOGRAPHY.fontSize.body,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
     color: COLORS.neutral.textPrimary,
     marginBottom: 4,
-    marginTop: SPACING.xs,
   },
   input: {
+    backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
     borderColor: COLORS.neutral.border,
     borderRadius: 8,
-    padding: SPACING.sm,
-    fontSize: TYPOGRAPHY.fontSize.body,
-    backgroundColor: COLORS.neutral.background,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
     marginBottom: SPACING.sm,
+    fontSize: TYPOGRAPHY.fontSize.body,
   },
-  modalBtnRow: {
+  modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: SPACING.md,
     gap: SPACING.md,
+    marginTop: SPACING.md,
   },
   cancelBtn: {
     paddingVertical: SPACING.sm,
@@ -317,6 +388,6 @@ const styles = StyleSheet.create({
   },
   cancelBtnText: {
     color: COLORS.neutral.textSecondary,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
   },
 });

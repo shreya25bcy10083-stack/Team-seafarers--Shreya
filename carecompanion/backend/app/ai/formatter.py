@@ -36,9 +36,9 @@ def format_report_response(raw_response: str) -> dict:
     """
     Format a report analysis response into structured JSON.
 
-    Extracts summary, key findings, simplified explanation, tips, questions for doctor, and disclaimer.
+    Extracts overall health status, summary, key findings, normal/abnormal observations, simplified explanation,
+    lifestyle suggestions, questions for doctor, and disclaimer.
     """
-    # Try parsing as JSON if wrapped in markdown backticks
     clean_text = raw_response.strip()
     if clean_text.startswith("```json"):
         clean_text = re.sub(r"^```json\s*", "", clean_text)
@@ -49,11 +49,20 @@ def format_report_response(raw_response: str) -> dict:
 
     try:
         parsed = json.loads(clean_text)
+        status = parsed.get("overall_health_status", "NEEDS_ATTENTION")
+        label = parsed.get("health_status_label")
+        if not label:
+            label = "🟢 Good / Normal" if status == "HEALTHY" else "🟡 Needs Attention" if status == "NEEDS_ATTENTION" else "🔴 Urgent Care"
+
         return {
+            "overall_health_status": status,
+            "health_status_label": label,
             "summary": parsed.get("summary", raw_response),
-            "key_findings": parsed.get("key_findings", ["Report successfully analyzed by CareCompanion AI"]),
+            "key_findings": parsed.get("key_findings", ["Report analyzed by CareCompanion AI"]),
+            "normal_observations": parsed.get("normal_observations", []),
+            "abnormal_observations": parsed.get("abnormal_observations", []),
             "simplified_explanation": parsed.get("simplified_explanation", raw_response),
-            "health_tips": parsed.get("health_tips", []),
+            "health_tips": parsed.get("lifestyle_suggestions") or parsed.get("health_tips", []),
             "questions_for_doctor": parsed.get("questions_for_doctor", []),
             "disclaimer": parsed.get(
                 "disclaimer",
@@ -70,10 +79,14 @@ def format_report_response(raw_response: str) -> dict:
                 tips.append(stripped.lstrip("-•").strip())
 
         return {
+            "overall_health_status": "NEEDS_ATTENTION",
+            "health_status_label": "🟡 Needs Attention",
             "summary": raw_response[:300] + "...",
             "key_findings": tips[:3] if tips else ["Medical document successfully analyzed."],
+            "normal_observations": ["Routine parameters evaluated."],
+            "abnormal_observations": [],
             "simplified_explanation": raw_response,
-            "health_tips": tips[3:6] if len(tips) > 3 else ["Stay hydrated and maintain your routine."],
+            "health_tips": tips[3:6] if len(tips) > 3 else ["Maintain a balanced routine and stay hydrated."],
             "questions_for_doctor": ["What do these test results mean for my daily care plan?"],
             "disclaimer": "This information is educational and should not replace advice from a qualified healthcare professional.",
         }

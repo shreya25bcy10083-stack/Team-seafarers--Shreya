@@ -15,6 +15,7 @@ import { ReportService } from '../../services/report.service';
 export const ReportsScreen: React.FC = () => {
   const { reports, isLoading, error, refetch } = useReports();
   const [selectedReport, setSelectedReport] = useState<MedicalReport | null>(null);
+  const [reportAnalysis, setReportAnalysis] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -29,13 +30,36 @@ export const ReportsScreen: React.FC = () => {
     const res = await ReportService.uploadReportFile(file);
     setIsUploading(false);
 
-    if (res.success) {
-      if (res.data) {
-        setSelectedReport(res.data);
+    if (res.success && res.data) {
+      setSelectedReport(res.data);
+      if (res.data.summary) {
+        try {
+          setReportAnalysis(JSON.parse(res.data.summary));
+        } catch (e) {
+          setReportAnalysis({ summary: res.data.summary });
+        }
       }
       refetch();
     } else {
       setUploadError(res.message || 'Failed to analyze medical report.');
+    }
+  };
+
+  const handleOpenReport = (report: MedicalReport) => {
+    setSelectedReport(report);
+    try {
+      if (report.summary && report.summary.startsWith('{')) {
+        setReportAnalysis(JSON.parse(report.summary));
+      } else {
+        setReportAnalysis({
+          summary: report.summary,
+          key_findings: report.keyFindings,
+          simplified_explanation: report.simplifiedExplanation,
+          questions_for_doctor: report.doctorNotes ? report.doctorNotes.split('\n') : [],
+        });
+      }
+    } catch (e) {
+      setReportAnalysis({ summary: report.summary });
     }
   };
 
@@ -91,12 +115,12 @@ export const ReportsScreen: React.FC = () => {
           />
         ) : (
           reports.map((report) => (
-            <ReportCard key={report.id} report={report} onPress={() => setSelectedReport(report)} />
+            <ReportCard key={report.id} report={report} onPress={() => handleOpenReport(report)} />
           ))
         )}
       </ScrollView>
 
-      {/* Detailed Analysis Modal */}
+      {/* Detailed AI Analysis Modal */}
       {selectedReport && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setSelectedReport(null)}>
           <View style={styles.modalOverlay}>
@@ -104,15 +128,19 @@ export const ReportsScreen: React.FC = () => {
               <ScrollView>
                 <Text style={styles.modalTitle}>📄 {selectedReport.title}</Text>
 
+                {/* Executive Summary */}
                 <View style={styles.sectionBox}>
-                  <Text style={styles.sectionHeader}>📋 Summary</Text>
-                  <Text style={styles.bodyText}>{selectedReport.summary}</Text>
+                  <Text style={styles.sectionHeader}>📋 Executive Summary</Text>
+                  <Text style={styles.bodyText}>
+                    {reportAnalysis?.summary || selectedReport.summary}
+                  </Text>
                 </View>
 
-                {selectedReport.keyFindings && selectedReport.keyFindings.length > 0 && (
+                {/* Key Findings */}
+                {reportAnalysis?.key_findings && reportAnalysis.key_findings.length > 0 && (
                   <View style={styles.sectionBox}>
                     <Text style={styles.sectionHeader}>🔍 Key Findings</Text>
-                    {selectedReport.keyFindings.map((finding, idx) => (
+                    {reportAnalysis.key_findings.map((finding: string, idx: number) => (
                       <Text key={idx} style={styles.bulletItem}>
                         • {finding}
                       </Text>
@@ -120,21 +148,66 @@ export const ReportsScreen: React.FC = () => {
                   </View>
                 )}
 
-                <View style={styles.sectionBox}>
-                  <Text style={styles.sectionHeader}>💡 Simple Explanation</Text>
-                  <Text style={styles.bodyText}>{selectedReport.simplifiedExplanation}</Text>
-                </View>
-
-                {selectedReport.doctorNotes && (
+                {/* Normal Observations */}
+                {reportAnalysis?.normal_observations && reportAnalysis.normal_observations.length > 0 && (
                   <View style={styles.sectionBox}>
-                    <Text style={styles.sectionHeader}>🩺 Questions for Doctor</Text>
-                    <Text style={styles.bodyText}>{selectedReport.doctorNotes}</Text>
+                    <Text style={styles.sectionHeader}>✅ Normal Observations</Text>
+                    {reportAnalysis.normal_observations.map((obs: string, idx: number) => (
+                      <Text key={idx} style={styles.bulletItemSuccess}>
+                        ✓ {obs}
+                      </Text>
+                    ))}
                   </View>
                 )}
 
+                {/* Abnormal Observations */}
+                {reportAnalysis?.abnormal_observations && reportAnalysis.abnormal_observations.length > 0 && (
+                  <View style={styles.sectionBox}>
+                    <Text style={styles.sectionHeader}>⚠️ Notable Observations</Text>
+                    {reportAnalysis.abnormal_observations.map((obs: string, idx: number) => (
+                      <Text key={idx} style={styles.bulletItemWarning}>
+                        • {obs}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {/* Simplified Explanation */}
+                <View style={styles.sectionBox}>
+                  <Text style={styles.sectionHeader}>💡 Plain Language Explanation</Text>
+                  <Text style={styles.bodyText}>
+                    {reportAnalysis?.simplified_explanation || selectedReport.simplifiedExplanation}
+                  </Text>
+                </View>
+
+                {/* Lifestyle Suggestions */}
+                {reportAnalysis?.health_tips && reportAnalysis.health_tips.length > 0 && (
+                  <View style={styles.sectionBox}>
+                    <Text style={styles.sectionHeader}>🌿 Lifestyle Suggestions</Text>
+                    {reportAnalysis.health_tips.map((tip: string, idx: number) => (
+                      <Text key={idx} style={styles.bulletItem}>
+                        • {tip}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {/* Questions for Doctor */}
+                {reportAnalysis?.questions_for_doctor && reportAnalysis.questions_for_doctor.length > 0 && (
+                  <View style={styles.sectionBox}>
+                    <Text style={styles.sectionHeader}>🩺 Questions for Your Doctor</Text>
+                    {reportAnalysis.questions_for_doctor.map((q: string, idx: number) => (
+                      <Text key={idx} style={styles.bulletItem}>
+                        • {q}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {/* Disclaimer */}
                 <View style={styles.disclaimerBox}>
                   <Text style={styles.disclaimerText}>
-                    ⚠️ Disclaimer: This information is educational and should not replace advice from a qualified healthcare professional.
+                    ⚠️ Disclaimer: {reportAnalysis?.disclaimer || 'This information is educational and should not replace advice from a qualified healthcare professional.'}
                   </Text>
                 </View>
               </ScrollView>
@@ -221,6 +294,18 @@ const styles = StyleSheet.create({
   bulletItem: {
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.neutral.textPrimary,
+    marginBottom: 4,
+  },
+  bulletItemSuccess: {
+    fontSize: TYPOGRAPHY.fontSize.body,
+    color: COLORS.primary.dark,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    marginBottom: 4,
+  },
+  bulletItemWarning: {
+    fontSize: TYPOGRAPHY.fontSize.body,
+    color: COLORS.warning.dark,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
     marginBottom: 4,
   },
   disclaimerBox: {

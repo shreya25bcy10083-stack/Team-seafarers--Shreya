@@ -40,4 +40,4 @@ class MedicationResponse(BaseModel):
 class MedicationLogCreate(BaseModel):
     """Log medication action."""
     medication_id: int
-    status: str = Field(..., pattern="^(taken|missed|snoozed)$")
+    status: str = Field(..., pattern="^(taken|missed|snoozed|skipped)$")

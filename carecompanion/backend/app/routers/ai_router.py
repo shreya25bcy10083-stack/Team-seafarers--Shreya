@@ -35,5 +35,5 @@ async def report_summary(
 ):
     """Upload a report and get an AI-generated summary."""
     service = AIService(db)
-    data = await service.upload_and_analyze_report(current_user["user_id"], file)
+    data = await service.upload_and_analyze_report(current_user, file)
     return success_response(data=data)

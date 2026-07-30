@@ -12,6 +12,7 @@ from app.ai.formatter import format_chat_response, format_report_response
 from app.ai.safety import check_safety, add_disclaimer_if_needed
 from app.repositories.patient_repository import PatientRepository
 from app.repositories.report_repository import ReportRepository
+from app.utils.patient_resolver import resolve_patient_id
 from app.core.exceptions import NotFoundException
 import json
 
@@ -59,11 +60,8 @@ class AIService:
             user_message=message,
         )
 
-        # Get Gemini response with graceful fallback
-        try:
-            raw_response = get_gemini_response(system_prompt, user_prompt)
-        except Exception:
-            raw_response = f"I hear your question about '{message}'. Currently, I'm unable to reach Gemini AI, but please rest well and consult your healthcare provider if needed."
+        # Get Gemini response
+        raw_response = get_gemini_response(system_prompt, user_prompt)
 
         # Apply safety checks
         safe_response = check_safety(raw_response)
@@ -82,12 +80,12 @@ class AIService:
         # Format for frontend
         return format_chat_response(safe_response)
 
-    def analyze_report(self, user_id: int, report_id: int, file_bytes: bytes | None = None, mime_type: str = "application/pdf") -> dict:
+    def analyze_report(self, current_user: dict | int, report_id: int, file_bytes: bytes | None = None, mime_type: str = "application/pdf") -> dict:
         """
         Analyze a medical report using Gemini.
 
         Args:
-            user_id: Current user's ID.
+            current_user: Current user dict or user_id int.
             report_id: ID of the report to analyze.
             file_bytes: Optional uploaded raw file bytes.
             mime_type: File MIME type.
@@ -95,7 +93,8 @@ class AIService:
         Returns:
             Formatted report summary dict.
         """
-        patient = self.patient_repo.get_by_user_id(user_id)
+        patient_id = resolve_patient_id(self.db, current_user)
+        patient = self.patient_repo.get_by_id(patient_id)
         if not patient:
             raise NotFoundException(message="Patient profile not found.")
 
@@ -135,12 +134,12 @@ class AIService:
 
         return formatted_res
 
-    async def upload_and_analyze_report(self, user_id: int, file) -> dict:
+    async def upload_and_analyze_report(self, current_user: dict | int, file) -> dict:
         """
         Upload a medical report to Cloudinary, save in DB, and analyze it using Gemini.
 
         Args:
-            user_id: Current user's ID.
+            current_user: Current user dict or user_id int.
             file: UploadFile instance.
 
         Returns:
@@ -151,10 +150,10 @@ class AIService:
 
         from app.services.report_service import ReportService
         report_service = ReportService(self.db)
-        uploaded_report = await report_service.upload_report(user_id, file)
+        uploaded_report = await report_service.upload_report(current_user, file)
 
         return self.analyze_report(
-            user_id,
+            current_user,
             uploaded_report["id"],
             file_bytes=contents,
             mime_type=file.content_type or "application/pdf"

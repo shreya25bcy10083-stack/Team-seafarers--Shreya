@@ -7,12 +7,8 @@ Business logic for medication CRUD and adherence logging.
 from sqlalchemy.orm import Session
 from app.repositories.medication_repository import MedicationRepository
 from app.repositories.patient_repository import PatientRepository
-from app.core.exceptions import NotFoundException, ForbiddenException
-
-
 from app.repositories.activity_repository import ActivityRepository
-
-
+from app.core.exceptions import NotFoundException, ForbiddenException
 from app.utils.patient_resolver import resolve_patient_id
 
 
@@ -46,12 +42,15 @@ class MedicationService:
         patient_id = resolve_patient_id(self.db, current_user)
         medication = self.med_repo.create(patient_id=patient_id, medicine_name=name, **kwargs)
 
+        patient = self.patient_repo.get_by_id(patient_id)
+        patient_name = patient.user.full_name if patient and patient.user else "Patient"
         creator_label = "Caregiver" if current_user.get("role") == "caregiver" else "Patient"
+
         self.activity_repo.create_log(
             patient_id=patient_id,
             event_type="medication",
-            title=f"Medication Scheduled by {creator_label}: {name}",
-            description=f"Dosage: {kwargs.get('dosage', 'N/A')}",
+            title=f"Medication Scheduled for {patient_name}: {name}",
+            description=f"Dosage: {kwargs.get('dosage', 'N/A')} by {creator_label}",
         )
 
         return {
@@ -72,7 +71,6 @@ class MedicationService:
         if medication.patient_id != patient_id:
             raise ForbiddenException(message="You do not have access to this medication.")
 
-        # Map 'name' to 'medicine_name' if provided
         if "name" in kwargs and kwargs["name"]:
             kwargs["medicine_name"] = kwargs.pop("name")
         else:
@@ -100,7 +98,7 @@ class MedicationService:
         self.med_repo.delete(medication)
 
     def log_medication(self, current_user: dict, medication_id: int, status: str) -> dict:
-        """Log a medication action (taken/missed/snoozed)."""
+        """Log a medication action (taken/skipped/missed/snoozed) and alert caregiver."""
         patient_id = resolve_patient_id(self.db, current_user)
         medication = self.med_repo.get_by_id(medication_id)
 
@@ -111,13 +109,27 @@ class MedicationService:
 
         log = self.med_repo.create_log(medication_id=medication_id, status=status)
 
-        status_title = "Medication Taken" if status == "taken" else f"Medication {status.capitalize()}"
-        actor = "Caregiver" if current_user.get("role") == "caregiver" else "Patient"
+        patient = self.patient_repo.get_by_id(patient_id)
+        patient_name = patient.user.full_name if patient and patient.user else "Patient"
+
+        clean_status = status.lower()
+        if clean_status == "taken":
+            action_verb = "has taken"
+        elif clean_status == "skipped":
+            action_verb = "skipped"
+        elif clean_status == "missed":
+            action_verb = "missed"
+        else:
+            action_verb = f"marked {clean_status}"
+
+        title = f"{patient_name} {action_verb} {medication.medicine_name}"
+        desc = f"{patient_name} {action_verb} {medication.medicine_name} ({medication.dosage or 'Prescribed dosage'})"
+
         self.activity_repo.create_log(
             patient_id=patient_id,
             event_type="medication",
-            title=f"{status_title} ({actor}): {medication.medicine_name}",
-            description=f"Status: {status.upper()}",
+            title=title,
+            description=desc,
         )
 
         return {"medication_id": medication_id, "status": status}

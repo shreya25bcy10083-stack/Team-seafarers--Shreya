@@ -5,7 +5,11 @@ import { MedicationItem } from '../types/Medication';
 
 export const MedicationService = {
   async getMedications(patientId?: string): Promise<ApiResponse<MedicationItem[]>> {
-    const response = await ApiClient.request<any[]>(API_CONFIG.ENDPOINTS.MEDICATION.LIST);
+    const endpoint = patientId && patientId !== 'patient'
+      ? `${API_CONFIG.ENDPOINTS.CAREGIVER.MEDICATIONS}?patient_id=${patientId}`
+      : API_CONFIG.ENDPOINTS.MEDICATION.LIST;
+
+    const response = await ApiClient.request<any[]>(endpoint);
 
     if (response.success && Array.isArray(response.data)) {
       const items: MedicationItem[] = response.data.map((m) => ({
@@ -39,20 +43,17 @@ export const MedicationService = {
     instructions?: string;
     patientId?: number;
   }): Promise<ApiResponse<MedicationItem>> {
-    // If caregiver adding for patient
     const endpoint = medication.patientId
-      ? `${API_CONFIG.ENDPOINTS.CAREGIVER.MEDICATIONS}?patient_id=${medication.patientId}&name=${encodeURIComponent(medication.name)}&dosage=${encodeURIComponent(medication.dosage)}&frequency=${encodeURIComponent(medication.frequency)}&time=${encodeURIComponent(medication.time || '08:00')}&instructions=${encodeURIComponent(medication.instructions || '')}`
+      ? `${API_CONFIG.ENDPOINTS.CAREGIVER.MEDICATIONS}?patient_id=${medication.patientId}`
       : API_CONFIG.ENDPOINTS.MEDICATION.ADD;
 
-    const body = medication.patientId
-      ? undefined
-      : {
-          name: medication.name,
-          dosage: medication.dosage,
-          frequency: medication.frequency,
-          time: medication.time || '08:00',
-          instructions: medication.instructions || '',
-        };
+    const body = {
+      name: medication.name,
+      dosage: medication.dosage,
+      frequency: medication.frequency,
+      time: medication.time || '08:00',
+      instructions: medication.instructions || '',
+    };
 
     const response = await ApiClient.request<any>(endpoint, {
       method: 'POST',

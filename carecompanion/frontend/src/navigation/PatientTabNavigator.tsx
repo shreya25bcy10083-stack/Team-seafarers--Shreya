@@ -10,11 +10,19 @@ import { ReportsScreen } from '../screens/patient/ReportsScreen';
 import { ProfileScreen } from '../screens/patient/ProfileScreen';
 import { SOSScreen } from '../screens/patient/SOSScreen';
 import { WellnessScreen } from '../screens/patient/WellnessScreen';
+import { useMedication } from '../hooks/useMedication';
+import { useMedicationReminder } from '../hooks/useMedicationReminder';
+import { MedicationAlarmModal } from '../components/modals/MedicationAlarmModal';
 
 type PatientTab = 'HOME' | 'MEDICATION' | 'CHAT' | 'REPORTS' | 'PROFILE' | 'SOS' | 'WELLNESS';
 
 export const PatientTabNavigator: React.FC = () => {
   const [activeTab, setActiveTab] = useState<PatientTab>('HOME');
+  const { medications, updateStatus } = useMedication();
+  const { activeAlarmMedication, handleTakeAlarm, handleSnoozeAlarm, handleSkipAlarm } = useMedicationReminder(
+    medications,
+    updateStatus
+  );
 
   const renderActiveScreen = () => {
     switch (activeTab) {
@@ -47,7 +55,7 @@ export const PatientTabNavigator: React.FC = () => {
   const tabs: { key: PatientTab; label: string; icon: string }[] = [
     { key: 'HOME', label: 'Home', icon: '🏠' },
     { key: 'MEDICATION', label: 'Meds', icon: '💊' },
-    { key: 'CHAT', label: 'AI Chat', icon: '🤖' },
+    { key: 'CHAT', label: 'AI Chat', icon: '👩🏽‍⚕️' },
     { key: 'REPORTS', label: 'Reports', icon: '📋' },
     { key: 'PROFILE', label: 'Profile', icon: '👤' },
   ];
@@ -55,6 +63,15 @@ export const PatientTabNavigator: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.screenArea}>{renderActiveScreen()}</View>
+
+      {/* High-Priority Audible Medication Alarm Modal */}
+      <MedicationAlarmModal
+        visible={!!activeAlarmMedication}
+        item={activeAlarmMedication}
+        onTake={handleTakeAlarm}
+        onSnooze={handleSnoozeAlarm}
+        onSkip={handleSkipAlarm}
+      />
 
       {/* Accessible Bottom Tab Bar */}
       {activeTab !== 'SOS' && (

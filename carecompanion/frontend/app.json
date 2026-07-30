@@ -19,15 +19,23 @@
     "android": {
       "package": "com.carecompanion.app",
       "permissions": [
+        "RECORD_AUDIO",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6beb9615-a6ed-469e-a79f-c0d57e12e33f"
+      }
     }
   }
 }

@@ -1,4 +1,4 @@
-import { ApiClient, mockDelay } from './api';
+import { ApiClient } from './api';
 import { API_CONFIG } from '../constants/api';
 import { ApiResponse } from '../types/API';
 import { UserProfile, UserRole } from '../types/User';
@@ -41,7 +41,7 @@ export const AuthService = {
     };
   },
 
-  async register(name: string, email: string, password: string = 'password123', role: UserRole = 'PATIENT'): Promise<ApiResponse<{ user: UserProfile; token: string }>> {
+  async register(name: string, email: string, password: string = 'password123', role: UserRole = 'PATIENT'): Promise<ApiResponse<{ user_id: number }>> {
     const backendRole = role.toLowerCase();
     const response = await ApiClient.request<{ user_id: number }>(
       API_CONFIG.ENDPOINTS.AUTH.REGISTER,
@@ -52,29 +52,18 @@ export const AuthService = {
     );
 
     if (response.success && response.data?.user_id) {
-      // Auto-login after successful registration
-      return this.login(email, password, role);
+      return {
+        success: true,
+        message: 'Account created successfully',
+        data: {
+          user_id: response.data.user_id,
+        },
+      };
     }
 
-    // Fallback for mock/demo mode
-    await mockDelay(500);
-    const mockToken = 'mock_jwt_token_new';
-    ApiClient.setToken(mockToken);
-    const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
-      name,
-      email,
-      role,
-      createdAt: new Date().toISOString(),
-    };
-
     return {
-      success: true,
-      message: 'Account created successfully (Mock Mode)',
-      data: {
-        user: newUser,
-        token: mockToken,
-      },
+      success: false,
+      message: response.message || 'Registration failed.',
     };
   },
 
@@ -97,28 +86,9 @@ export const AuthService = {
       };
     }
 
-    // Fallback for mock mode
-    await mockDelay(200);
     return {
-      success: true,
-      message: 'User profile retrieved (Mock Mode)',
-      data: {
-        id: 'usr_101',
-        name: 'Eleanor Vance',
-        email: 'eleanor.vance@example.com',
-        role: 'PATIENT',
-        createdAt: new Date().toISOString(),
-      },
-    };
-  },
-
-  async logout(): Promise<ApiResponse<null>> {
-    await ApiClient.request(API_CONFIG.ENDPOINTS.AUTH.LOGOUT, { method: 'POST' });
-    ApiClient.setToken(null);
-    return {
-      success: true,
-      message: 'Logged out successfully',
-      data: null,
+      success: false,
+      message: 'Failed to retrieve profile',
     };
   },
 };

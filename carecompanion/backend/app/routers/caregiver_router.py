@@ -1,7 +1,7 @@
 """
 Caregiver Router.
 
-Endpoints: POST /caregiver/join, GET /caregiver/dashboard, GET /caregiver/patient/{id}
+Endpoints: POST /caregiver/join, GET /caregiver/dashboard, GET /caregiver/patient/{id}, GET/POST/PUT/DELETE /caregiver/medications
 """
 
 from fastapi import APIRouter, Depends
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import require_caregiver
 from app.schemas.caregiver import CaregiverJoinRequest
+from app.schemas.medication import MedicationCreate, MedicationUpdate
 from app.services.caregiver_service import CaregiverService
 from app.utils.response_builder import success_response
 
@@ -50,14 +51,22 @@ def get_patient_details(
     return success_response(data=data)
 
 
+@router.get("/medications")
+def get_patient_medications(
+    patient_id: int | None = None,
+    current_user: dict = Depends(require_caregiver),
+    db: Session = Depends(get_db),
+):
+    """Caregiver retrieves medication schedule for linked patient."""
+    service = CaregiverService(db)
+    data = service.get_patient_medications(current_user["user_id"], patient_id=patient_id)
+    return success_response(data=data)
+
+
 @router.post("/medications")
 def add_patient_medication(
-    patient_id: int,
-    name: str,
-    dosage: str | None = None,
-    frequency: str | None = None,
-    time: str | None = None,
-    instructions: str | None = None,
+    request: MedicationCreate,
+    patient_id: int | None = None,
     current_user: dict = Depends(require_caregiver),
     db: Session = Depends(get_db),
 ):
@@ -66,11 +75,11 @@ def add_patient_medication(
     data = service.add_patient_medication(
         current_user["user_id"],
         patient_id=patient_id,
-        name=name,
-        dosage=dosage,
-        frequency=frequency,
-        time=time,
-        instructions=instructions,
+        name=request.name,
+        dosage=request.dosage,
+        frequency=request.frequency,
+        time=request.time,
+        instructions=request.instructions,
     )
     return success_response(data=data, message="Medication schedule created for patient.")
 
@@ -78,11 +87,7 @@ def add_patient_medication(
 @router.put("/medications/{medication_id}")
 def update_patient_medication(
     medication_id: int,
-    name: str | None = None,
-    dosage: str | None = None,
-    frequency: str | None = None,
-    time: str | None = None,
-    instructions: str | None = None,
+    request: MedicationUpdate,
     current_user: dict = Depends(require_caregiver),
     db: Session = Depends(get_db),
 ):
@@ -91,11 +96,11 @@ def update_patient_medication(
     data = service.update_patient_medication(
         current_user["user_id"],
         medication_id=medication_id,
-        name=name,
-        dosage=dosage,
-        frequency=frequency,
-        time=time,
-        instructions=instructions,
+        name=request.name,
+        dosage=request.dosage,
+        frequency=request.frequency,
+        time=request.time,
+        instructions=request.instructions,
     )
     return success_response(data=data, message="Medication schedule updated.")
 

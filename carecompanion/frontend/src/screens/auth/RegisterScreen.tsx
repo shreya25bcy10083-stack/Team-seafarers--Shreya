@@ -62,11 +62,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ selectedRole, on
     setIsLoading(true);
     try {
       const regResult = await AuthService.register(trimmedName, trimmedEmail, password, selectedRole);
-      if (regResult.success && regResult.data) {
-        // Registration auto-logs in via AuthService.register
+      if (regResult.success) {
+        // Auto login via AuthContext upon registration
         const loginResult = await login(trimmedEmail, password, selectedRole);
         if (!loginResult.success) {
-          setErrorMessage(loginResult.message || 'Registration succeeded but login failed. Please sign in manually.');
+          setErrorMessage(loginResult.message || 'Registration succeeded. Please sign in with your credentials.');
+          if (onNavigateLogin) onNavigateLogin();
         }
       } else {
         setErrorMessage(regResult.message || 'Registration failed. Please try again.');
@@ -116,7 +117,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ selectedRole, on
 
       <InputField
         label="Password"
-        placeholder="At least 6 characters"
+        placeholder="Create a password (min 6 chars)"
         value={password}
         onChangeText={(text) => {
           setPassword(text);
@@ -127,7 +128,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ selectedRole, on
 
       <InputField
         label="Confirm Password"
-        placeholder="Re-enter your password"
+        placeholder="Confirm your password"
         value={confirmPassword}
         onChangeText={(text) => {
           setConfirmPassword(text);
@@ -137,7 +138,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ selectedRole, on
       />
 
       <View style={styles.btnWrapper}>
-        <PrimaryButton title="Create Account" onPress={handleRegister} isLoading={isLoading} />
+        <PrimaryButton title="Create Account & Sign In" onPress={handleRegister} isLoading={isLoading} />
       </View>
 
       {onNavigateLogin && (

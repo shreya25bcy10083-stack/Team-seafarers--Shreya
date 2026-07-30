@@ -12,7 +12,7 @@ export const API_CONFIG = {
   BASE_URL:
     process.env.EXPO_PUBLIC_API_URL ||
     (Platform.OS === 'web' ? 'http://localhost:8000/api/v1' : `http://${LOCAL_IP}:8000/api/v1`),
-  TIMEOUT: 15000,
+  TIMEOUT: 60000,
   ENDPOINTS: {
     AUTH: {
       LOGIN: '/auth/login',

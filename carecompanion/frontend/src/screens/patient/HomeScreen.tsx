@@ -12,6 +12,7 @@ import { ErrorView } from '../../components/common/ErrorView';
 import { EmptyState } from '../../components/common/EmptyState';
 import { useAuth } from '../../hooks/useAuth';
 import { useMedication } from '../../hooks/useMedication';
+import { useWellness } from '../../hooks/useWellness';
 
 interface HomeScreenProps {
   onNavigateMedication?: () => void;
@@ -28,9 +29,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
   const { user } = useAuth();
   const { medications, isLoading, error, refetch, updateStatus } = useMedication(user?.id);
+  const { latestLog } = useWellness();
 
   const pendingMeds = medications.filter((m) => m.status === 'PENDING');
   const takenCount = medications.filter((m) => m.status === 'TAKEN').length;
+
+  const getMoodIcon = (mood?: string) => {
+    switch (mood) {
+      case 'GREAT':
+        return '😄';
+      case 'GOOD':
+        return '😊';
+      case 'OKAY':
+        return '😐';
+      case 'LOW':
+        return '😔';
+      case 'BAD':
+        return '😣';
+      default:
+        return '☀️';
+    }
+  };
+
+  const wellnessValue = latestLog ? latestLog.mood : 'Not Checked In';
+  const wellnessSubtitle = latestLog
+    ? `Pain: ${latestLog.painLevel}/10 • ${latestLog.sleepHours}h Sleep`
+    : 'Tap to Check In Today';
+  const wellnessIcon = getMoodIcon(latestLog?.mood);
 
   return (
     <View style={styles.screenContainer} accessibilityLabel="Patient Home Dashboard">
@@ -40,7 +65,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <TouchableOpacity onPress={onNavigateChat} activeOpacity={0.9} accessibilityLabel="Open AI Voice Assistant">
             <Avatar state="SMILING" size="lg" showLabel={false} />
           </TouchableOpacity>
-          <Text style={styles.greetingTitle}>Good Morning, {user?.name || 'Eleanor'}!</Text>
+          <Text style={styles.greetingTitle}>Good Morning, {user?.name || 'there'}!</Text>
           <Text style={styles.greetingSub}>
             I am here to guide you today. You have {pendingMeds.length} medication reminder(s) upcoming.
           </Text>
@@ -62,9 +87,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <TouchableOpacity onPress={onNavigateWellness} activeOpacity={0.8}>
               <HealthCard
                 title="Wellness Status"
-                value="Good"
-                subtitle="Check-in Complete"
-                icon="☀️"
+                value={wellnessValue}
+                subtitle={wellnessSubtitle}
+                icon={wellnessIcon}
                 accentColor={COLORS.secondary.main}
               />
             </TouchableOpacity>
@@ -142,30 +167,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
   sectionTitle: {
     fontSize: TYPOGRAPHY.fontSize.h3,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.neutral.textPrimary,
     marginBottom: SPACING.sm,
   },
+  gridRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
+  },
+  gridCol: {
+    flex: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
   seeAllText: {
     fontSize: TYPOGRAPHY.fontSize.caption,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.secondary.main,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  gridCol: {
-    flex: 1,
   },
   sosFloatingContainer: {
     position: 'absolute',

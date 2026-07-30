@@ -1,28 +1,7 @@
-import { ApiClient, mockDelay } from './api';
+import { ApiClient } from './api';
 import { API_CONFIG } from '../constants/api';
 import { ApiResponse } from '../types/API';
 import { AppNotification } from '../types/Notification';
-
-const MOCK_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif_01',
-    userId: 'usr_101',
-    title: 'Medication Reminder',
-    message: 'It is time for your afternoon Calcium + Vitamin D (600mg).',
-    type: 'REMINDER',
-    timestamp: '10 mins ago',
-    isRead: false,
-  },
-  {
-    id: 'notif_02',
-    userId: 'usr_101',
-    title: 'Caregiver Update',
-    message: 'Robert Vance checked your morning medication status.',
-    type: 'INFO',
-    timestamp: '2 hours ago',
-    isRead: true,
-  },
-];
 
 export const NotificationService = {
   async getNotifications(): Promise<ApiResponse<AppNotification[]>> {
@@ -45,12 +24,29 @@ export const NotificationService = {
       };
     }
 
-    // Fallback for mock mode
-    await mockDelay(300);
+    // Caregiver fallback: retrieve patient activity feed and transform SOS alerts into emergency notifications
+    const cgRes = await ApiClient.request<any[]>(API_CONFIG.ENDPOINTS.CAREGIVER.ACTIVITY);
+    if (cgRes.success && Array.isArray(cgRes.data)) {
+      const items: AppNotification[] = cgRes.data.map((a) => ({
+        id: String(a.id),
+        userId: 'cg_101',
+        title: a.title,
+        message: a.description || a.title,
+        type: a.event_type === 'sos' ? ('EMERGENCY' as any) : ('INFO' as any),
+        timestamp: a.created_at ? new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
+        isRead: false,
+      }));
+      return {
+        success: true,
+        message: 'Caregiver activity feed retrieved',
+        data: items,
+      };
+    }
+
     return {
       success: true,
-      message: 'Notifications retrieved (Mock Mode)',
-      data: MOCK_NOTIFICATIONS,
+      message: 'No notifications',
+      data: [],
     };
   },
 
@@ -60,22 +56,15 @@ export const NotificationService = {
     });
 
     if (response.success) {
-      const item = MOCK_NOTIFICATIONS.find((n) => n.id === id) || MOCK_NOTIFICATIONS[0];
       return {
         success: true,
         message: 'Notification marked as read',
-        data: { ...item, isRead: true },
       };
     }
 
-    // Fallback for mock mode
-    await mockDelay(200);
-    const item = MOCK_NOTIFICATIONS.find((n) => n.id === id) || MOCK_NOTIFICATIONS[0];
-    item.isRead = true;
     return {
       success: true,
-      message: 'Notification marked as read (Mock Mode)',
-      data: item,
+      message: 'Notification marked as read',
     };
   },
 };

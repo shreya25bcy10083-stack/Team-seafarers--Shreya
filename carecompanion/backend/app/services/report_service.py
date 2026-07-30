@@ -43,7 +43,7 @@ class ReportService:
             report_url=upload_result["url"],
         )
 
-        actor = "Caregiver" if current_user.get("role") == "caregiver" else "Patient"
+        actor = "Caregiver" if isinstance(current_user, dict) and current_user.get("role") == "caregiver" else "Patient"
         self.activity_repo.create_log(
             patient_id=patient_id,
             event_type="report",

@@ -11,17 +11,21 @@ from app.repositories.caregiver_repository import CaregiverRepository
 from app.core.exceptions import NotFoundException, BadRequestException
 
 
-def resolve_patient_id(db: Session, current_user: dict, target_patient_id: int | None = None) -> int:
+def resolve_patient_id(db: Session, current_user: dict | int, target_patient_id: int | None = None) -> int:
     """
     Get patient_id associated with current authenticated user.
 
     If role is 'patient', returns current user's patient ID.
     If role is 'caregiver', returns linked patient ID.
     """
-    user_id = current_user["user_id"]
-    role = current_user.get("role")
+    if isinstance(current_user, int):
+        user_id = current_user
+        role = "patient"
+    else:
+        user_id = current_user.get("user_id") if isinstance(current_user, dict) else current_user
+        role = current_user.get("role", "patient") if isinstance(current_user, dict) else "patient"
 
-    if role == "patient":
+    if role == "patient" or not role:
         patient_repo = PatientRepository(db)
         patient = patient_repo.get_by_user_id(user_id)
         if not patient:
