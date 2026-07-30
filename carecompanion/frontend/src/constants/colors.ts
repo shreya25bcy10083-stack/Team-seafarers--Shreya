@@ -47,6 +47,15 @@ export const COLORS = {
     iconDefault: '#4B5563',
     darkBackground: '#111827',
   },
+  // Semantic compatibility mapping
+  semantic: {
+    error: '#EF4444',
+    errorBg: '#FEE2E2',
+    warning: '#F59E0B',
+    warningBg: '#FEF3C7',
+    success: '#10B981',
+    successBg: '#E6F4EA',
+  },
 } as const;
 
 export type ColorToken = typeof COLORS;

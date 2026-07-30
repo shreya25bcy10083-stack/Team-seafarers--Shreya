@@ -6,18 +6,20 @@ import { TYPOGRAPHY } from '../../constants/typography';
 import { InputField } from '../../components/inputs/InputField';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { useAuth } from '../../hooks/useAuth';
+import { AuthService } from '../../services/auth.service';
 import { UserRole } from '../../types/User';
 
-interface LoginScreenProps {
+interface RegisterScreenProps {
   selectedRole: UserRole;
-  onNavigateRegister?: () => void;
-  onNavigateBack?: () => void;
+  onNavigateLogin?: () => void;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ selectedRole, onNavigateRegister, onNavigateBack }) => {
+export const RegisterScreen: React.FC<RegisterScreenProps> = ({ selectedRole, onNavigateLogin }) => {
   const { login } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,10 +28,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ selectedRole, onNaviga
     return emailRegex.test(emailStr.trim());
   };
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     setErrorMessage(null);
 
+    const trimmedName = name.trim();
     const trimmedEmail = email.trim();
+
+    if (!trimmedName || trimmedName.length < 2) {
+      setErrorMessage('Please enter your full name (at least 2 characters).');
+      return;
+    }
 
     if (!trimmedEmail) {
       setErrorMessage('Please enter your email address.');
@@ -46,27 +54,53 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ selectedRole, onNaviga
       return;
     }
 
-    setIsLoading(true);
-    const result = await login(trimmedEmail, password, selectedRole);
-    setIsLoading(false);
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match.');
+      return;
+    }
 
-    if (!result.success) {
-      setErrorMessage(result.message || 'Login failed. Invalid credentials.');
+    setIsLoading(true);
+    try {
+      const regResult = await AuthService.register(trimmedName, trimmedEmail, password, selectedRole);
+      if (regResult.success && regResult.data) {
+        // Registration auto-logs in via AuthService.register
+        const loginResult = await login(trimmedEmail, password, selectedRole);
+        if (!loginResult.success) {
+          setErrorMessage(loginResult.message || 'Registration succeeded but login failed. Please sign in manually.');
+        }
+      } else {
+        setErrorMessage(regResult.message || 'Registration failed. Please try again.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'An unexpected error occurred.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const roleLabel = selectedRole === 'PATIENT' ? 'Patient' : 'Caregiver';
 
   return (
-    <ScrollView contentContainerStyle={styles.container} accessibilityLabel="Login Screen">
-      <Text style={styles.title}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Sign in as a {roleLabel} to access your healthcare companion.</Text>
+    <ScrollView contentContainerStyle={styles.container} accessibilityLabel="Register Screen">
+      <Text style={styles.title}>Create Account</Text>
+      <Text style={styles.subtitle}>Sign up as a {roleLabel} to get started.</Text>
 
       {errorMessage && (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>{errorMessage}</Text>
         </View>
       )}
+
+      <InputField
+        label="Full Name"
+        placeholder="e.g. Eleanor Vance"
+        value={name}
+        onChangeText={(text) => {
+          setName(text);
+          if (errorMessage) setErrorMessage(null);
+        }}
+        autoCapitalize="words"
+      />
 
       <InputField
         label="Email Address"
@@ -82,7 +116,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ selectedRole, onNaviga
 
       <InputField
         label="Password"
-        placeholder="Enter your password"
+        placeholder="At least 6 characters"
         value={password}
         onChangeText={(text) => {
           setPassword(text);
@@ -91,19 +125,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ selectedRole, onNaviga
         secureTextEntry
       />
 
+      <InputField
+        label="Confirm Password"
+        placeholder="Re-enter your password"
+        value={confirmPassword}
+        onChangeText={(text) => {
+          setConfirmPassword(text);
+          if (errorMessage) setErrorMessage(null);
+        }}
+        secureTextEntry
+      />
+
       <View style={styles.btnWrapper}>
-        <PrimaryButton title="Sign In" onPress={handleLogin} isLoading={isLoading} />
+        <PrimaryButton title="Create Account" onPress={handleRegister} isLoading={isLoading} />
       </View>
 
-      {onNavigateRegister && (
-        <TouchableOpacity style={styles.linkWrapper} onPress={onNavigateRegister}>
-          <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
-        </TouchableOpacity>
-      )}
-
-      {onNavigateBack && (
-        <TouchableOpacity style={styles.backWrapper} onPress={onNavigateBack}>
-          <Text style={styles.backText}>← Back to Role Selection</Text>
+      {onNavigateLogin && (
+        <TouchableOpacity style={styles.linkWrapper} onPress={onNavigateLogin}>
+          <Text style={styles.linkText}>Already have an account? Sign In</Text>
         </TouchableOpacity>
       )}
     </ScrollView>
@@ -153,15 +192,6 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.secondary.main,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
-  },
-  backWrapper: {
-    marginTop: SPACING.md,
-    alignItems: 'center',
-  },
-  backText: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    color: COLORS.neutral.textSecondary,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
   },
 });

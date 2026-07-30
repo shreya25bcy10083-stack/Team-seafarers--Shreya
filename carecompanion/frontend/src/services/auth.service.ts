@@ -41,7 +41,7 @@ export const AuthService = {
     };
   },
 
-  async register(name: string, email: string, password: str = 'password123', role: UserRole = 'PATIENT'): Promise<ApiResponse<{ user: UserProfile; token: string }>> {
+  async register(name: string, email: string, password: string = 'password123', role: UserRole = 'PATIENT'): Promise<ApiResponse<{ user: UserProfile; token: string }>> {
     const backendRole = role.toLowerCase();
     const response = await ApiClient.request<{ user_id: number }>(
       API_CONFIG.ENDPOINTS.AUTH.REGISTER,

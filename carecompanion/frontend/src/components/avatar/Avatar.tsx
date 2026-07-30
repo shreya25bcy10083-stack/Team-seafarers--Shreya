@@ -51,10 +51,10 @@ export const Avatar: React.FC<AvatarProps> = ({ state = 'IDLE', size = 'md', sho
   const getBorderColor = () => {
     switch (state) {
       case 'EMERGENCY':
-        return COLORS.semantic.error || '#EF4444';
+        return COLORS.error.main;
       case 'REMINDER':
       case 'CONCERNED':
-        return COLORS.semantic.warning || '#F59E0B';
+        return COLORS.warning.main;
       case 'SPEAKING':
       case 'LISTENING':
         return COLORS.secondary.main || '#10B981';

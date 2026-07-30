@@ -3,9 +3,15 @@
  * Aligned with backend FastAPI route definitions and API_SCHEMA.md.
  */
 
+import { Platform } from 'react-native';
+
+const LOCAL_IP = '172.25.163.241';
+
 export const API_CONFIG = {
-  // Default development backend server URL
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  // Mobile devices connect using laptop local IP, Web uses localhost
+  BASE_URL:
+    process.env.EXPO_PUBLIC_API_URL ||
+    (Platform.OS === 'web' ? 'http://localhost:8000/api/v1' : `http://${LOCAL_IP}:8000/api/v1`),
   TIMEOUT: 15000,
   ENDPOINTS: {
     AUTH: {
@@ -41,23 +47,20 @@ export const API_CONFIG = {
     REPORT: {
       LIST: '/reports',
       UPLOAD: '/reports/upload',
-      GET_BY_ID: (id: string | number) => `/reports/${id}`,
-      SUMMARY: (id: string | number) => `/reports/${id}`,
+      DETAIL: (id: string | number) => `/reports/${id}`,
     },
     AI: {
       CHAT: '/ai/chat',
       REPORT_SUMMARY: '/ai/report-summary',
-      EXPLAIN_REPORT: '/ai/report-summary',
-      WELLNESS_GUIDANCE: '/ai/chat',
-    },
-    NOTIFICATION: {
-      LIST: '/notifications',
-      READ: (id: string | number) => `/notifications/${id}`,
+      WELLNESS_FEEDBACK: '/ai/chat',
     },
     SOS: {
       TRIGGER: '/sos',
-      CANCEL: '/sos',
-      STATUS: '/sos',
+      CANCEL: '/sos/cancel',
+    },
+    NOTIFICATION: {
+      LIST: '/notifications',
+      MARK_READ: (id: string | number) => `/notifications/${id}`,
     },
   },
-} as const;
+};

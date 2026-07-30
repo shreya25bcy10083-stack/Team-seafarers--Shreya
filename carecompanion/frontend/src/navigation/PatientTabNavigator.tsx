@@ -84,10 +84,12 @@ export const PatientTabNavigator: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    height: '100%',
     backgroundColor: COLORS.neutral.background,
   },
   screenArea: {
     flex: 1,
+    height: '100%',
   },
   bottomBar: {
     flexDirection: 'row',

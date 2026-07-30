@@ -3,15 +3,17 @@ import { View, StyleSheet, SafeAreaView, StatusBar, Platform } from 'react-nativ
 import { useAuth } from '../hooks/useAuth';
 import { RoleSelectionScreen } from '../screens/auth/RoleSelectionScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
+import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { PatientTabNavigator } from './PatientTabNavigator';
 import { CaregiverTabNavigator } from './CaregiverTabNavigator';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { COLORS } from '../constants/colors';
+import { UserRole } from '../types/User';
 
 export const RootNavigator: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const [authView, setAuthView] = useState<'ROLE' | 'LOGIN'>('ROLE');
-  const [selectedRole, setSelectedRole] = useState<'PATIENT' | 'CAREGIVER'>('PATIENT');
+  const [authView, setAuthView] = useState<'ROLE' | 'LOGIN' | 'REGISTER'>('ROLE');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('PATIENT');
 
   if (isLoading) {
     return (
@@ -25,15 +27,26 @@ export const RootNavigator: React.FC = () => {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={COLORS.neutral.background} />
-        {authView === 'ROLE' ? (
+        {authView === 'ROLE' && (
           <RoleSelectionScreen
             onSelectRole={(role) => {
               setSelectedRole(role);
               setAuthView('LOGIN');
             }}
           />
-        ) : (
-          <LoginScreen onNavigateRegister={() => setAuthView('ROLE')} />
+        )}
+        {authView === 'LOGIN' && (
+          <LoginScreen
+            selectedRole={selectedRole}
+            onNavigateRegister={() => setAuthView('REGISTER')}
+            onNavigateBack={() => setAuthView('ROLE')}
+          />
+        )}
+        {authView === 'REGISTER' && (
+          <RegisterScreen
+            selectedRole={selectedRole}
+            onNavigateLogin={() => setAuthView('LOGIN')}
+          />
         )}
       </View>
     );

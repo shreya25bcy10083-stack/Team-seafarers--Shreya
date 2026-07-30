@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (email: string, password: str = 'password123', role: UserRole = 'PATIENT'): Promise<{ success: boolean; message: string }> => {
+  const login = async (email: string, password: string = 'password123', role: UserRole = 'PATIENT'): Promise<{ success: boolean; message: string }> => {
     setIsLoading(true);
     try {
       const res = await AuthService.login(email, password, role);
