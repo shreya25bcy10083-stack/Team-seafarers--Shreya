@@ -15,39 +15,39 @@ from app.core.exceptions import NotFoundException, ForbiddenException
 from app.repositories.activity_repository import ActivityRepository
 
 
+from app.utils.patient_resolver import resolve_patient_id
+
+
 class ReportService:
     """Handles report upload, storage, and retrieval."""
 
     def __init__(self, db: Session):
+        self.db = db
         self.report_repo = ReportRepository(db)
         self.patient_repo = PatientRepository(db)
         self.activity_repo = ActivityRepository(db)
 
-    async def upload_report(self, user_id: int, file: UploadFile) -> dict:
+    async def upload_report(self, current_user: dict, file: UploadFile) -> dict:
         """
-        Upload a medical report to Cloudinary and store metadata.
-
-        Returns:
-            Report data with ID and URL.
+        Upload a medical report to Cloudinary/local storage and store metadata.
         """
-        patient = self.patient_repo.get_by_user_id(user_id)
-        if not patient:
-            raise NotFoundException(message="Patient profile not found.")
+        patient_id = resolve_patient_id(self.db, current_user)
 
-        # Upload to Cloudinary
+        # Upload to Cloudinary / local fallback
         upload_result = await upload_to_cloudinary(file, folder="carecompanion/reports")
 
         # Store in database
         report = self.report_repo.create(
-            patient_id=patient.id,
+            patient_id=patient_id,
             report_name=file.filename or "Untitled Report",
             report_url=upload_result["url"],
         )
 
+        actor = "Caregiver" if current_user.get("role") == "caregiver" else "Patient"
         self.activity_repo.create_log(
-            patient_id=patient.id,
+            patient_id=patient_id,
             event_type="report",
-            title=f"Medical Report Uploaded: {report.report_name}",
+            title=f"Medical Report Uploaded by {actor}: {report.report_name}",
             description="Report ready for viewing and AI analysis.",
         )
 
@@ -59,13 +59,11 @@ class ReportService:
             "uploaded_at": report.uploaded_at.isoformat() if report.uploaded_at else None,
         }
 
-    def get_reports(self, user_id: int) -> list[dict]:
-        """Get all reports for the current patient."""
-        patient = self.patient_repo.get_by_user_id(user_id)
-        if not patient:
-            raise NotFoundException(message="Patient profile not found.")
+    def get_reports(self, current_user: dict) -> list[dict]:
+        """Get all reports for the current patient or caregiver's linked patient."""
+        patient_id = resolve_patient_id(self.db, current_user)
 
-        reports = self.report_repo.get_by_patient_id(patient.id)
+        reports = self.report_repo.get_by_patient_id(patient_id)
         return [
             {
                 "id": r.id,
@@ -77,17 +75,15 @@ class ReportService:
             for r in reports
         ]
 
-    def get_report_by_id(self, user_id: int, report_id: int) -> dict:
-        """Get a single report by ID with ownership check."""
-        patient = self.patient_repo.get_by_user_id(user_id)
-        if not patient:
-            raise NotFoundException(message="Patient profile not found.")
+    def get_report_by_id(self, current_user: dict, report_id: int) -> dict:
+        """Get a single report by ID with ownership/link check."""
+        patient_id = resolve_patient_id(self.db, current_user)
 
         report = self.report_repo.get_by_id(report_id)
         if not report:
             raise NotFoundException(message="Report not found.")
-        if report.patient_id != patient.id:
-            raise ForbiddenException(message="You do not own this report.")
+        if report.patient_id != patient_id:
+            raise ForbiddenException(message="You do not have access to this report.")
 
         return {
             "id": report.id,

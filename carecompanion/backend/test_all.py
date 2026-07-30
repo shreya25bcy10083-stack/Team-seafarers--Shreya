@@ -144,7 +144,60 @@ def test_patient_caregiver_flow():
     assert "sos_alerts" in dash_data
     print("[OK] Caregiver dashboard comprehensive payload verified")
 
-    # 5. Patient triggers SOS
+    # 5. Medication Synchronization: Caregiver prescribes medication
+    med_res = client.post("/api/v1/medications", json={
+        "name": "Lisinopril",
+        "dosage": "10mg",
+        "frequency": "Daily",
+        "time": "08:00",
+        "instructions": "Take after breakfast"
+    }, headers=c_headers)
+    assert med_res.status_code == 200
+    med_id = med_res.json()["data"]["id"]
+    print("[OK] Caregiver added medication for linked patient")
+
+    # Patient fetches medications and sees prescribed item
+    p_meds_res = client.get("/api/v1/medications", headers=p_headers)
+    assert p_meds_res.status_code == 200
+    p_meds = p_meds_res.json()["data"]
+    assert any(m["name"] == "Lisinopril" for m in p_meds)
+    print("[OK] Patient successfully retrieved caregiver-prescribed medication")
+
+    # Patient marks medication as taken
+    log_res = client.post("/api/v1/medications/log", json={
+        "medication_id": med_id,
+        "status": "taken"
+    }, headers=p_headers)
+    assert log_res.status_code == 200
+    print("[OK] Patient logged medication as taken")
+
+    # Caregiver fetches dashboard and verifies adherence updated
+    dash_res2 = client.get("/api/v1/caregiver/dashboard", headers=c_headers)
+    assert dash_res2.status_code == 200
+    assert dash_res2.json()["data"]["medication_adherence"] > 0
+    print("[OK] Caregiver dashboard verified updated medication adherence")
+
+    # 6. Wellness Synchronization: Patient submits daily wellness check-in
+    well_res = client.post("/api/v1/wellness/checkin", json={
+        "mood": "Happy",
+        "sleep_hours": 8,
+        "energy": "High",
+        "pain_level": 1,
+        "notes": "Feeling great today"
+    }, headers=p_headers)
+    assert well_res.status_code == 200
+    print("[OK] Patient submitted daily wellness check-in")
+
+    # Caregiver retrieves wellness history & dashboard, sees latest submission
+    c_well_res = client.get("/api/v1/caregiver/wellness", headers=c_headers)
+    assert c_well_res.status_code == 200
+    c_well_data = c_well_res.json()["data"]
+    assert len(c_well_data) > 0
+    assert c_well_data[0]["mood"] == "Happy"
+    assert c_well_data[0]["pain_level"] == 1
+    print("[OK] Caregiver retrieved synchronized patient wellness check")
+
+    # 7. Patient triggers SOS
     sos_res = client.post("/api/v1/sos/trigger", json={"latitude": 37.7749, "longitude": -122.4194}, headers=p_headers)
     assert sos_res.status_code == 200
     print("[OK] Patient SOS emergency triggered and dispatched")

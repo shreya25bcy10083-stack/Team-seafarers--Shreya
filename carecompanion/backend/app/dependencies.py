@@ -62,3 +62,10 @@ def require_caregiver(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user["role"] != "caregiver":
         raise ForbiddenException(message="This action requires a caregiver account.")
     return current_user
+
+
+def require_patient_or_caregiver(current_user: dict = Depends(get_current_user)) -> dict:
+    """Require current user to have either 'patient' or 'caregiver' role."""
+    if current_user["role"] not in ("patient", "caregiver"):
+        raise ForbiddenException(message="Access restricted to patients and caregivers.")
+    return current_user

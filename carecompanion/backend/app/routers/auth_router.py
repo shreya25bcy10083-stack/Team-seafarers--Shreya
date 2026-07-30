@@ -42,7 +42,18 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     )
 
 
+from app.dependencies import get_current_user
+
+
 @router.post("/logout")
 def logout():
     """Logout the current user (client-side token removal)."""
     return success_response(message="Logout successful.")
+
+
+@router.get("/me")
+def get_me(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get authenticated user profile."""
+    service = AuthService(db)
+    data = service.get_me(current_user["user_id"])
+    return success_response(data=data)

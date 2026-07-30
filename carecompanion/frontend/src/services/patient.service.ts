@@ -19,7 +19,11 @@ export const PatientService = {
 
     if (response.success && response.data) {
       const d = response.data;
-      if (d.patient_name === 'No patient linked' || !d.patient_name) {
+      const patientInfo = d.patient_info || (Array.isArray(d.linked_patients) && d.linked_patients[0]);
+      const patientName = d.patient_name || patientInfo?.name;
+      const patientId = d.patient_id || patientInfo?.id;
+
+      if (!patientName || patientName === 'No patient linked') {
         return {
           success: true,
           message: 'No patient linked yet',
@@ -27,15 +31,19 @@ export const PatientService = {
         };
       }
 
+      const totalMeds = Array.isArray(d.medication_schedule) ? d.medication_schedule.length : 3;
+      const adherencePct = d.medication_adherence || 0;
+      const takenCount = Math.round((adherencePct / 100) * Math.max(totalMeds, 1));
+
       const item: CaregiverPatientSummary = {
-        id: String(d.patient_id || '1'),
-        name: d.patient_name,
-        age: d.age || 75,
+        id: String(patientId),
+        name: patientName,
+        age: d.age || patientInfo?.age || 70,
         healthStatus: d.today_status === 'Happy' || d.today_status === 'Calm' || d.today_status === 'GOOD' ? 'HEALTHY' : 'NEEDS_ATTENTION',
-        medicationsTakenCount: d.medication_adherence ? Math.round((d.medication_adherence / 100) * 3) : 0,
-        totalMedicationsCount: 3,
+        medicationsTakenCount: takenCount,
+        totalMedicationsCount: Math.max(totalMeds, 1),
         lastCheckinTime: d.today_status || 'Today',
-        emergencyContact: '+1 (555) 987-6543',
+        emergencyContact: patientInfo?.emergency_contact || 'Emergency Contact Set',
       };
 
       return {

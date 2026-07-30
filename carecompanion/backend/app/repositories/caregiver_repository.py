@@ -49,17 +49,17 @@ class CaregiverRepository:
         )
 
     def get_patients_for_caregiver(self, caregiver_id: int) -> list[PatientCaregiver]:
-        """Get all patient links for a caregiver."""
+        """Get all accepted patient links for a caregiver."""
         return (
             self.db.query(PatientCaregiver)
-            .filter(PatientCaregiver.caregiver_id == caregiver_id)
+            .filter(PatientCaregiver.caregiver_id == caregiver_id, PatientCaregiver.status == "accepted")
             .all()
         )
 
     def get_caregivers_for_patient(self, patient_id: int) -> list[PatientCaregiver]:
-        """Get all caregiver links for a patient."""
+        """Get all accepted caregiver links for a patient."""
         return (
             self.db.query(PatientCaregiver)
-            .filter(PatientCaregiver.patient_id == patient_id)
+            .filter(PatientCaregiver.patient_id == patient_id, PatientCaregiver.status == "accepted")
             .all()
         )

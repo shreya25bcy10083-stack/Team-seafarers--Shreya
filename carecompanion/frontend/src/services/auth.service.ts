@@ -5,7 +5,7 @@ import { UserProfile, UserRole } from '../types/User';
 
 export const AuthService = {
   async login(email: string, password: string = 'password123', role: UserRole = 'PATIENT'): Promise<ApiResponse<{ user: UserProfile; token: string }>> {
-    const response = await ApiClient.request<{ token: string; role: string; user_id: number }>(
+    const response = await ApiClient.request<{ token: string; role: string; user_id: number; name?: string; email?: string }>(
       API_CONFIG.ENDPOINTS.AUTH.LOGIN,
       {
         method: 'POST',
@@ -19,8 +19,8 @@ export const AuthService = {
       const userRole = (response.data.role || role).toUpperCase() as UserRole;
       const userProfile: UserProfile = {
         id: String(response.data.user_id),
-        name: email.split('@')[0],
-        email,
+        name: response.data.name || email.split('@')[0],
+        email: response.data.email || email,
         role: userRole,
         createdAt: new Date().toISOString(),
       };
@@ -79,20 +79,19 @@ export const AuthService = {
   },
 
   async getCurrentUser(): Promise<ApiResponse<UserProfile>> {
-    const response = await ApiClient.request<any>(API_CONFIG.ENDPOINTS.PATIENT.PROFILE);
+    const response = await ApiClient.request<any>(API_CONFIG.ENDPOINTS.AUTH.ME);
 
     if (response.success && response.data) {
-      const p = response.data;
+      const u = response.data;
+      const userRole = (u.role || 'PATIENT').toUpperCase() as UserRole;
       return {
         success: true,
         message: 'Profile retrieved',
         data: {
-          id: String(p.id),
-          name: p.name || 'User',
-          email: 'patient@carecompanion.health',
-          role: 'PATIENT',
-          phone: p.emergency_contact || '',
-          emergencyContactPhone: p.emergency_contact,
+          id: String(u.id),
+          name: u.name || 'User',
+          email: u.email || '',
+          role: userRole,
           createdAt: new Date().toISOString(),
         },
       };
@@ -108,10 +107,6 @@ export const AuthService = {
         name: 'Eleanor Vance',
         email: 'eleanor.vance@example.com',
         role: 'PATIENT',
-        phone: '+1 (555) 234-5678',
-        emergencyContactName: 'Robert Vance (Son)',
-        emergencyContactPhone: '+1 (555) 987-6543',
-        linkedCaregiverName: 'Robert Vance',
         createdAt: new Date().toISOString(),
       },
     };

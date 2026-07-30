@@ -8,11 +8,16 @@ import { PatientDetailsScreen } from '../screens/caregiver/PatientDetailsScreen'
 import { AlertsScreen } from '../screens/caregiver/AlertsScreen';
 import { SettingsScreen } from '../screens/caregiver/SettingsScreen';
 
+import { usePatient } from '../hooks/usePatient';
+
 type CaregiverTab = 'DASHBOARD' | 'DETAILS' | 'ALERTS' | 'SETTINGS';
 
 export const CaregiverTabNavigator: React.FC = () => {
+  const { patients } = usePatient();
   const [activeTab, setActiveTab] = useState<CaregiverTab>('DASHBOARD');
-  const [selectedPatientId, setSelectedPatientId] = useState<string>('usr_101');
+  const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>(undefined);
+
+  const activePatientId = selectedPatientId || (patients.length > 0 ? patients[0].id : undefined);
 
   const renderActiveScreen = () => {
     switch (activeTab) {
@@ -26,7 +31,7 @@ export const CaregiverTabNavigator: React.FC = () => {
           />
         );
       case 'DETAILS':
-        return <PatientDetailsScreen patientId={selectedPatientId} onBack={() => setActiveTab('DASHBOARD')} />;
+        return <PatientDetailsScreen patientId={activePatientId} onBack={() => setActiveTab('DASHBOARD')} />;
       case 'ALERTS':
         return <AlertsScreen />;
       case 'SETTINGS':

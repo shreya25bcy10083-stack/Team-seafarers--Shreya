@@ -13,24 +13,21 @@ from app.core.exceptions import NotFoundException, ForbiddenException
 from app.repositories.activity_repository import ActivityRepository
 
 
+from app.utils.patient_resolver import resolve_patient_id
+
+
 class MedicationService:
     """Handles medication management and adherence tracking."""
 
     def __init__(self, db: Session):
+        self.db = db
         self.med_repo = MedicationRepository(db)
         self.patient_repo = PatientRepository(db)
         self.activity_repo = ActivityRepository(db)
 
-    def _get_patient_id(self, user_id: int) -> int:
-        """Helper to get patient ID from user ID."""
-        patient = self.patient_repo.get_by_user_id(user_id)
-        if not patient:
-            raise NotFoundException(message="Patient profile not found.")
-        return patient.id
-
-    def get_medications(self, user_id: int) -> list[dict]:
-        """Get all medications for the current patient."""
-        patient_id = self._get_patient_id(user_id)
+    def get_medications(self, current_user: dict) -> list[dict]:
+        """Get all medications for the current patient or caregiver's linked patient."""
+        patient_id = resolve_patient_id(self.db, current_user)
         medications = self.med_repo.get_by_patient_id(patient_id)
 
         return [
@@ -44,15 +41,16 @@ class MedicationService:
             for m in medications
         ]
 
-    def add_medication(self, user_id: int, name: str, **kwargs) -> dict:
-        """Add a new medication."""
-        patient_id = self._get_patient_id(user_id)
+    def add_medication(self, current_user: dict, name: str, **kwargs) -> dict:
+        """Add a new medication for current patient or caregiver's linked patient."""
+        patient_id = resolve_patient_id(self.db, current_user)
         medication = self.med_repo.create(patient_id=patient_id, medicine_name=name, **kwargs)
 
+        creator_label = "Caregiver" if current_user.get("role") == "caregiver" else "Patient"
         self.activity_repo.create_log(
             patient_id=patient_id,
             event_type="medication",
-            title=f"Medication Scheduled: {name}",
+            title=f"Medication Scheduled by {creator_label}: {name}",
             description=f"Dosage: {kwargs.get('dosage', 'N/A')}",
         )
 
@@ -64,15 +62,15 @@ class MedicationService:
             "status": "pending",
         }
 
-    def update_medication(self, user_id: int, medication_id: int, **kwargs) -> dict:
+    def update_medication(self, current_user: dict, medication_id: int, **kwargs) -> dict:
         """Update an existing medication."""
-        patient_id = self._get_patient_id(user_id)
+        patient_id = resolve_patient_id(self.db, current_user)
         medication = self.med_repo.get_by_id(medication_id)
 
         if not medication:
             raise NotFoundException(message="Medication not found.")
         if medication.patient_id != patient_id:
-            raise ForbiddenException(message="You do not own this medication.")
+            raise ForbiddenException(message="You do not have access to this medication.")
 
         # Map 'name' to 'medicine_name' if provided
         if "name" in kwargs and kwargs["name"]:
@@ -89,35 +87,36 @@ class MedicationService:
             "status": "pending",
         }
 
-    def delete_medication(self, user_id: int, medication_id: int) -> None:
+    def delete_medication(self, current_user: dict, medication_id: int) -> None:
         """Delete a medication."""
-        patient_id = self._get_patient_id(user_id)
+        patient_id = resolve_patient_id(self.db, current_user)
         medication = self.med_repo.get_by_id(medication_id)
 
         if not medication:
             raise NotFoundException(message="Medication not found.")
         if medication.patient_id != patient_id:
-            raise ForbiddenException(message="You do not own this medication.")
+            raise ForbiddenException(message="You do not have access to this medication.")
 
         self.med_repo.delete(medication)
 
-    def log_medication(self, user_id: int, medication_id: int, status: str) -> dict:
+    def log_medication(self, current_user: dict, medication_id: int, status: str) -> dict:
         """Log a medication action (taken/missed/snoozed)."""
-        patient_id = self._get_patient_id(user_id)
+        patient_id = resolve_patient_id(self.db, current_user)
         medication = self.med_repo.get_by_id(medication_id)
 
         if not medication:
             raise NotFoundException(message="Medication not found.")
         if medication.patient_id != patient_id:
-            raise ForbiddenException(message="You do not own this medication.")
+            raise ForbiddenException(message="You do not have access to this medication.")
 
         log = self.med_repo.create_log(medication_id=medication_id, status=status)
 
         status_title = "Medication Taken" if status == "taken" else f"Medication {status.capitalize()}"
+        actor = "Caregiver" if current_user.get("role") == "caregiver" else "Patient"
         self.activity_repo.create_log(
             patient_id=patient_id,
             event_type="medication",
-            title=f"{status_title}: {medication.medicine_name}",
+            title=f"{status_title} ({actor}): {medication.medicine_name}",
             description=f"Status: {status.upper()}",
         )
 

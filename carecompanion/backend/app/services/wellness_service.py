@@ -13,34 +13,35 @@ from app.core.exceptions import NotFoundException
 from app.repositories.activity_repository import ActivityRepository
 
 
+from app.utils.patient_resolver import resolve_patient_id
+
+
 class WellnessService:
     """Handles daily wellness check-ins and history."""
 
     def __init__(self, db: Session):
+        self.db = db
         self.wellness_repo = WellnessRepository(db)
         self.patient_repo = PatientRepository(db)
         self.activity_repo = ActivityRepository(db)
 
-    def checkin(self, user_id: int, **kwargs) -> dict:
+    def checkin(self, current_user: dict, **kwargs) -> dict:
         """
-        Record a daily wellness check-in.
-
-        Accepts mood, sleep_hours, energy, pain_level, notes.
+        Record a daily wellness check-in for current patient or caregiver's linked patient.
         """
-        patient = self.patient_repo.get_by_user_id(user_id)
-        if not patient:
-            raise NotFoundException(message="Patient profile not found.")
+        patient_id = resolve_patient_id(self.db, current_user)
 
         # Map 'energy' to 'energy_level' for the model
         if "energy" in kwargs:
             kwargs["energy_level"] = kwargs.pop("energy")
 
-        check = self.wellness_repo.create(patient_id=patient.id, **kwargs)
+        check = self.wellness_repo.create(patient_id=patient_id, **kwargs)
 
+        actor = "Caregiver" if current_user.get("role") == "caregiver" else "Patient"
         self.activity_repo.create_log(
-            patient_id=patient.id,
+            patient_id=patient_id,
             event_type="wellness",
-            title="Wellness Check Completed",
+            title=f"Wellness Check Submitted ({actor})",
             description=f"Mood: {check.mood or 'N/A'}, Energy: {check.energy_level or 'N/A'}, Pain: {check.pain_level if check.pain_level is not None else 'N/A'}/10",
         )
 
@@ -53,13 +54,11 @@ class WellnessService:
             "notes": check.notes,
         }
 
-    def get_history(self, user_id: int) -> list[dict]:
-        """Get wellness check-in history for a patient."""
-        patient = self.patient_repo.get_by_user_id(user_id)
-        if not patient:
-            raise NotFoundException(message="Patient profile not found.")
+    def get_history(self, current_user: dict) -> list[dict]:
+        """Get wellness check-in history for a patient or caregiver's linked patient."""
+        patient_id = resolve_patient_id(self.db, current_user)
 
-        checks = self.wellness_repo.get_by_patient_id(patient.id)
+        checks = self.wellness_repo.get_by_patient_id(patient_id)
         return [
             {
                 "id": c.id,

@@ -76,4 +76,22 @@ class AuthService:
 
         token = create_access_token(data={"sub": str(user.id), "role": user.role})
 
-        return {"token": token, "role": user.role, "user_id": user.id}
+        return {
+            "token": token,
+            "role": user.role,
+            "user_id": user.id,
+            "name": user.full_name,
+            "email": user.email,
+        }
+
+    def get_me(self, user_id: int) -> dict:
+        """Get current user details."""
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            raise NotFoundException(message="User not found.")
+        return {
+            "id": user.id,
+            "name": user.full_name,
+            "email": user.email,
+            "role": user.role,
+        }
