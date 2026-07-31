@@ -99,8 +99,8 @@ class MedicationRepository:
         log = (
             self.db.query(MedicationLog)
             .filter(MedicationLog.medication_id == medication_id)
-            .filter(MedicationLog.logged_at >= today_start)
-            .order_by(MedicationLog.logged_at.desc())
+            .filter(MedicationLog.taken_at >= today_start)
+            .order_by(MedicationLog.taken_at.desc())
             .first()
         )
         return log.status if log else "pending"
