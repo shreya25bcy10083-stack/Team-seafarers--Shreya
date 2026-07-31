@@ -42,11 +42,14 @@ def resolve_patient_id(db: Session, current_user: dict | int, target_patient_id:
         if not links:
             raise BadRequestException(message="No patient linked to this caregiver account.")
 
-        if target_patient_id:
-            link = next((l for l in links if l.patient_id == target_patient_id), None)
-            if not link:
-                raise BadRequestException(message="Target patient is not linked to this caregiver.")
-            return link.patient_id
+        if target_patient_id is not None:
+            try:
+                target_int = int(target_patient_id)
+                link = next((l for l in links if l.patient_id == target_int), None)
+                if link:
+                    return link.patient_id
+            except (ValueError, TypeError):
+                pass
 
         return links[0].patient_id
 

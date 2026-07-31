@@ -18,6 +18,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'carecompanion_token';
 const USER_KEY = 'carecompanion_user';
 
+import { storageHelper } from '../utils/storageHelper';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -27,8 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Restore persistent session if present
     const initAuth = async () => {
       try {
-        const storedToken = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
-        const storedUser = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
+        const storedToken = await storageHelper.getItem(TOKEN_KEY);
+        const storedUser = await storageHelper.getItem(USER_KEY);
 
         if (storedToken && storedUser && storedUser !== 'undefined') {
           const parsedUser: UserProfile = JSON.parse(storedUser);
@@ -63,10 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(res.data.token);
         ApiClient.setToken(res.data.token);
 
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(TOKEN_KEY, res.data.token);
-          localStorage.setItem(USER_KEY, JSON.stringify(res.data.user));
-        }
+        await storageHelper.setItem(TOKEN_KEY, res.data.token);
+        await storageHelper.setItem(USER_KEY, JSON.stringify(res.data.user));
+
         return { success: true, message: res.message || 'Login successful' };
       }
       return { success: false, message: res.message || 'Invalid credentials.' };
@@ -77,23 +78,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     setToken(null);
     ApiClient.setToken(null);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-    }
+    await storageHelper.removeItem(TOKEN_KEY);
+    await storageHelper.removeItem(USER_KEY);
   };
 
-  const setRole = (role: UserRole) => {
+  const setRole = async (role: UserRole) => {
     if (user) {
       const updated = { ...user, role };
       setUser(updated);
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(USER_KEY, JSON.stringify(updated));
-      }
+      await storageHelper.setItem(USER_KEY, JSON.stringify(updated));
     }
   };
 

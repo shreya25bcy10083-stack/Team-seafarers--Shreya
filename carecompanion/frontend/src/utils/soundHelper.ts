@@ -16,6 +16,15 @@ export const playAlarmSound = () => {
 
     if (!audioCtx) {
       audioCtx = new AudioContextClass();
+      const unlockAudio = () => {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      };
+      if (typeof window !== 'undefined') {
+        window.addEventListener('click', unlockAudio, { once: true });
+        window.addEventListener('touchstart', unlockAudio, { once: true });
+      }
     }
 
     if (audioCtx.state === 'suspended') {
