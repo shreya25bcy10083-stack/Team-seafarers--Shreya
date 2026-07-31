@@ -92,3 +92,16 @@ class MedicationRepository:
             .filter(MedicationLog.medication_id.in_(medication_ids))
             .all()
         )
+
+    def get_latest_status(self, medication_id: int) -> str:
+        """Get latest log status for a medication today, defaulting to 'pending'."""
+        today_start = datetime.combine(datetime.now().date(), time.min)
+        log = (
+            self.db.query(MedicationLog)
+            .filter(MedicationLog.medication_id == medication_id)
+            .filter(MedicationLog.logged_at >= today_start)
+            .order_by(MedicationLog.logged_at.desc())
+            .first()
+        )
+        return log.status if log else "pending"
+

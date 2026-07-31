@@ -1,6 +1,32 @@
 import { useState, useEffect, useRef } from 'react';
 import { MedicationItem } from '../types/Medication';
 
+const normalizeTime = (rawTime: string): string => {
+  if (!rawTime) return '';
+  let str = rawTime.trim();
+  let period: string | null = null;
+
+  if (str.toUpperCase().includes('AM')) {
+    period = 'AM';
+    str = str.replace(/AM/gi, '').trim();
+  } else if (str.toUpperCase().includes('PM')) {
+    period = 'PM';
+    str = str.replace(/PM/gi, '').trim();
+  }
+
+  const parts = str.split(':');
+  if (parts.length < 2) return '';
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1].padStart(2, '0').slice(0, 2);
+
+  if (isNaN(hours)) return '';
+
+  if (period === 'PM' && hours < 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+};
+
 export const useMedicationReminder = (
   medications: MedicationItem[],
   updateStatus: (id: string, status: MedicationItem['status']) => Promise<void>
@@ -13,8 +39,8 @@ export const useMedicationReminder = (
       if (activeAlarmMedication) return; // Alarm already active
 
       const now = new Date();
-      const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       const nowTimestamp = Date.now();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       const dueMed = medications.find((med) => {
         if (med.status !== 'PENDING') return false;
@@ -28,22 +54,15 @@ export const useMedicationReminder = (
         const medTime = med.time || med.schedules?.[0]?.time;
         if (!medTime) return false;
 
-        // Clean time string (e.g., "08:00 AM" -> "08:00")
-        let cleanedTime = medTime.trim();
-        if (cleanedTime.includes(' ')) {
-          const parts = cleanedTime.split(' ');
-          const timeParts = parts[0].split(':');
-          let hours = parseInt(timeParts[0], 10);
-          const minutes = timeParts[1] || '00';
-          const period = parts[1].toUpperCase();
+        const cleanedTime = normalizeTime(medTime);
+        if (!cleanedTime) return false;
 
-          if (period === 'PM' && hours < 12) hours += 12;
-          if (period === 'AM' && hours === 12) hours = 0;
+        const [h, m] = cleanedTime.split(':').map((num) => parseInt(num, 10));
+        const medMinutes = h * 60 + m;
 
-          cleanedTime = `${String(hours).padStart(2, '0')}:${minutes}`;
-        }
-
-        return cleanedTime === currentHHMM;
+        // Trigger if current time is within 30 minutes after scheduled time
+        const diffMinutes = currentMinutes - medMinutes;
+        return diffMinutes >= 0 && diffMinutes <= 30;
       });
 
       if (dueMed) {

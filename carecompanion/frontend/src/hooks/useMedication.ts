@@ -26,6 +26,10 @@ export const useMedication = (patientId?: string) => {
 
   useEffect(() => {
     fetchMedications();
+    const interval = setInterval(() => {
+      fetchMedications();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [fetchMedications]);
 
   const updateStatus = async (id: string, status: MedicationStatus) => {

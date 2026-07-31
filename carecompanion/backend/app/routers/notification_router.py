@@ -21,7 +21,7 @@ def get_notifications(
 ):
     """Get all notifications for the current user."""
     service = NotificationService(db)
-    data = service.get_notifications(current_user["user_id"])
+    data = service.get_notifications(current_user)
     return success_response(data=data)
 
 

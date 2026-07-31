@@ -64,15 +64,21 @@ export const ReportsScreen: React.FC = () => {
   };
 
   const triggerUpload = () => {
-    if (Platform.OS === 'web' && fileInputRef.current) {
-      fileInputRef.current.click();
+    if (typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/pdf,image/png,image/jpeg,image/jpg';
+      input.onchange = (e: any) => handleFileSelect(e);
+      input.click();
+    } else if (fileInputRef.current) {
+      (fileInputRef.current as any).click();
     }
   };
 
   return (
     <View style={styles.container} accessibilityLabel="Medical Reports Assistant Screen">
-      {/* Hidden file input for web upload */}
-      {Platform.OS === 'web' && (
+      {/* Hidden file input for web/DOM upload fallback */}
+      {typeof document !== 'undefined' && (
         <input
           type="file"
           ref={fileInputRef as any}

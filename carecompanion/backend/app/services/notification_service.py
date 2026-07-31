@@ -10,20 +10,21 @@ from app.repositories.patient_repository import PatientRepository
 from app.core.exceptions import NotFoundException
 
 
+from app.utils.patient_resolver import resolve_patient_id
+
+
 class NotificationService:
     """Handles notification creation and retrieval."""
 
     def __init__(self, db: Session):
+        self.db = db
         self.notification_repo = NotificationRepository(db)
         self.patient_repo = PatientRepository(db)
 
-    def get_notifications(self, user_id: int) -> list[dict]:
-        """Get all notifications for the current patient."""
-        patient = self.patient_repo.get_by_user_id(user_id)
-        if not patient:
-            raise NotFoundException(message="Patient profile not found.")
-
-        notifications = self.notification_repo.get_by_patient_id(patient.id)
+    def get_notifications(self, current_user: dict | int) -> list[dict]:
+        """Get all notifications for the patient or caregiver's linked patient."""
+        patient_id = resolve_patient_id(self.db, current_user)
+        notifications = self.notification_repo.get_by_patient_id(patient_id)
         return [
             {
                 "id": n.id,

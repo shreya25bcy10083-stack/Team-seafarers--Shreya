@@ -187,7 +187,7 @@ class CaregiverService:
                 "name": m.medicine_name,
                 "dosage": m.dosage,
                 "time": m.reminder_time.strftime("%H:%M") if m.reminder_time else None,
-                "status": "pending",
+                "status": self.medication_repo.get_latest_status(m.id),
                 "frequency": m.frequency or "Daily",
                 "instructions": m.instructions or "",
             }

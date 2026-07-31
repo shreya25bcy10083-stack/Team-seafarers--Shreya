@@ -32,6 +32,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useEffect(() => {
     fetchNotifications();
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const markAsRead = async (id: string) => {
