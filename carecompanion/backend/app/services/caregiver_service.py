@@ -168,12 +168,14 @@ class CaregiverService:
         if not links:
             raise BadRequestException(message="No patient linked to this caregiver.")
 
-        if patient_id:
-            # Check specific link
-            link = next((l for l in links if l.patient_id == patient_id), None)
-            if not link:
-                raise BadRequestException(message="Patient is not linked to this caregiver.")
-            return link.patient_id
+        if patient_id is not None:
+            try:
+                p_int = int(patient_id)
+                link = next((l for l in links if l.patient_id == p_int), None)
+                if link:
+                    return link.patient_id
+            except (ValueError, TypeError):
+                pass
 
         return links[0].patient_id
 

@@ -12,6 +12,8 @@ import { useReports } from '../../hooks/useReports';
 import { MedicalReport } from '../../types/Report';
 import { ReportService } from '../../services/report.service';
 
+import * as DocumentPicker from 'expo-document-picker';
+
 export const ReportsScreen: React.FC = () => {
   const { reports, isLoading, error, refetch } = useReports();
   const [selectedReport, setSelectedReport] = useState<MedicalReport | null>(null);
@@ -63,15 +65,57 @@ export const ReportsScreen: React.FC = () => {
     }
   };
 
-  const triggerUpload = () => {
-    if (typeof document !== 'undefined') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/pdf,image/png,image/jpeg,image/jpg';
-      input.onchange = (e: any) => handleFileSelect(e);
-      input.click();
-    } else if (fileInputRef.current) {
-      (fileInputRef.current as any).click();
+  const triggerUpload = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['application/pdf', 'image/*'],
+          copyToCacheDirectory: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          setIsUploading(true);
+          setUploadError(null);
+
+          const fileToUpload = {
+            uri: asset.uri,
+            name: asset.name || 'medical_report.pdf',
+            type: asset.mimeType || 'application/pdf',
+          };
+
+          const res = await ReportService.uploadReportFile(fileToUpload);
+          setIsUploading(false);
+
+          if (res.success && res.data) {
+            setSelectedReport(res.data);
+            if (res.data.summary) {
+              try {
+                setReportAnalysis(JSON.parse(res.data.summary));
+              } catch (e) {
+                setReportAnalysis({ summary: res.data.summary });
+              }
+            }
+            refetch();
+          } else {
+            setUploadError(res.message || 'Failed to analyze medical report.');
+          }
+        }
+        return;
+      }
+
+      if (typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/pdf,image/png,image/jpeg,image/jpg';
+        input.onchange = (e: any) => handleFileSelect(e);
+        input.click();
+      } else if (fileInputRef.current) {
+        (fileInputRef.current as any).click();
+      }
+    } catch (e: any) {
+      console.error('File pick error:', e);
+      setIsUploading(false);
     }
   };
 
